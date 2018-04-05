@@ -20,6 +20,9 @@ void main(void)
 
     //Re-lock Clock Registers
     CS ->KEY = 0;
+    P4 ->SEL0 |= BIT3;
+    P4 ->SEL1 &= -BIT3;
+    P4 ->DIR |= BIT3;
 
     //Blink LED
     P1 ->SEL0 &= -BIT0;
@@ -28,7 +31,7 @@ void main(void)
     while (1){
         int i;
         P1 ->OUT ^= BIT0;
-        for (i = 50000; i > 0; i--);
+        for (i = 30000; i > 0; i--);
     }
 
 }

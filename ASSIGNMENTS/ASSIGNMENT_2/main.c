@@ -6,16 +6,7 @@
 #define FREQ_24_MHz 4
 #define FREQ_48_MHz 5
 
-
-
-
-void delay_ms(float time_ms, int freq)
-{
-    int numCycles = (int)(time_ms*freq*50);
-    int cycles;
-    for (cycles = numCycles; cycles > 0; cycles--);
-    return;
-}
+float numCycles;
 
 void set_DCO(int freq)
 {
@@ -38,6 +29,16 @@ void set_DCO(int freq)
             CS ->CTL0 |= CS_CTL0_DCORSEL_4;
             break;
         case 5:
+            /* Transition to VCORE Level 1: AM0_LDO --> AM1_LDO */
+                while ((PCM->CTL1 & PCM_CTL1_PMR_BUSY));
+                 PCM->CTL0 = PCM_CTL0_KEY_VAL | PCM_CTL0_AMR_1;
+                while ((PCM->CTL1 & PCM_CTL1_PMR_BUSY));
+
+            /* Configure Flash wait-state to 1 for both banks 0 & 1 */
+            FLCTL->BANK0_RDCTL = (FLCTL->BANK0_RDCTL &
+             ~(FLCTL_BANK0_RDCTL_WAIT_MASK)) | FLCTL_BANK0_RDCTL_WAIT_1;
+            FLCTL->BANK1_RDCTL = (FLCTL->BANK0_RDCTL &
+             ~(FLCTL_BANK1_RDCTL_WAIT_MASK)) | FLCTL_BANK1_RDCTL_WAIT_1;
             CS ->CTL0 |= CS_CTL0_DCORSEL_5;
             break;
         default:
@@ -48,11 +49,17 @@ void set_DCO(int freq)
     return;
 }
 
+void delay_us(float time_us, int freq)
+{
+    __asm(" nop");
+    return;
+}
+
 void main(void)
 {
     WDT_A->CTL = WDT_A_CTL_PW | WDT_A_CTL_HOLD;     // stop watchdog timer
+
     //Blink LED
-    set_DCO(2);
     P1 ->SEL0 &= -BIT0;
     P1 ->SEL1 &= -BIT0;
     P1 ->DIR |= BIT0;
@@ -61,9 +68,11 @@ void main(void)
     P4 ->SEL1 &= -BIT3;
     P4 ->DIR |= BIT3;
 
+    set_DCO(FREQ_48_MHz);
+
     while (1){
        P1 ->OUT ^= BIT0;
-       delay_ms(10, 6);
+       delay_us(100,FREQ_48_MHz);
     }
 }
 
