@@ -16,11 +16,16 @@ void delay_ms(int time_ms, int Freq_MHz){
 }
 
 void delay_us(int time_us, int Freq_MHz){
+    /*
+   if (time_us == 1 && Freq_MHz == 48){
+       return;
+   }
+   */
    // if(time_us < 10){ return;}
-    //float tuningFactor = .01 ;
-    //float numCycles = tuningFactor * (time_us * Freq_MHz);
-    //int delayLoop;
-    //for(delayLoop = (int)numCycles; delayLoop >= 0; delayLoop--){}
+    float tuningFactor = (time_us * Freq_MHz) - (time_us)*4;
+    float numCycles = (time_us * Freq_MHz) - tuningFactor;
+    int delayLoop;
+    for(delayLoop = (int)numCycles; delayLoop >= 0; delayLoop--){}
     return;
 }
 
@@ -45,6 +50,18 @@ void set_DCO(int FREQ){
             CS->CTL0 |= CS_CTL0_DCORSEL_4;
             break;
         case 5:
+            /* Transition to VCORE Level 1: AM0_LDO --> AM1_LDO */
+            while ((PCM->CTL1 & PCM_CTL1_PMR_BUSY));
+             PCM->CTL0 = PCM_CTL0_KEY_VAL | PCM_CTL0_AMR_1;
+            while ((PCM->CTL1 & PCM_CTL1_PMR_BUSY));
+
+            /* Configure Flash wait-state to 1 for both banks 0 & 1 */
+            FLCTL->BANK0_RDCTL = (FLCTL->BANK0_RDCTL &
+             ~(FLCTL_BANK0_RDCTL_WAIT_MASK)) | FLCTL_BANK0_RDCTL_WAIT_1;
+            FLCTL->BANK1_RDCTL = (FLCTL->BANK0_RDCTL &
+             ~(FLCTL_BANK1_RDCTL_WAIT_MASK)) | FLCTL_BANK1_RDCTL_WAIT_1;
+
+            /* Configure DCO to 48MHz */
             CS->CTL0 |= CS_CTL0_DCORSEL_5;
             break;
         default:
@@ -57,9 +74,10 @@ void set_DCO(int FREQ){
 
 void main(void)
 {
+
     WDTCTL = WDTPW | WDTHOLD;           // Stop watchdog timer
 
-    set_DCO(FREQ_3_MHz);
+    set_DCO(FREQ_48_MHz);
 
     P1 ->SEL0 &= ~BIT0;
     P1 ->SEL1 &= ~BIT1;
@@ -73,7 +91,7 @@ void main(void)
 
     while (1){
        P1 ->OUT ^= BIT0;
-       delay_us(1, 3);
+       delay_us(100, 48);
     }
 
 }
