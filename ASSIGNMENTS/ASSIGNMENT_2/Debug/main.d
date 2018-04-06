@@ -16,6 +16,10 @@ main.obj: /opt/ti/ccsv8/ccs_base/arm/include/CMSIS/core_cm4.h
 main.obj: /opt/ti/ccsv8/ccs_base/arm/include/CMSIS/cmsis_compiler.h
 main.obj: /opt/ti/ccsv8/ccs_base/arm/include/CMSIS/cmsis_ccs.h
 main.obj: /opt/ti/ccsv8/ccs_base/arm/include/system_msp432p401r.h
+main.obj: /opt/ti/ccsv8/tools/compiler/ti-cgt-arm_18.1.1.LTS/include/stdio.h
+main.obj: /opt/ti/ccsv8/tools/compiler/ti-cgt-arm_18.1.1.LTS/include/_ti_config.h
+main.obj: /opt/ti/ccsv8/tools/compiler/ti-cgt-arm_18.1.1.LTS/include/linkage.h
+main.obj: /opt/ti/ccsv8/tools/compiler/ti-cgt-arm_18.1.1.LTS/include/stdarg.h
 
 ../main.c: 
 /opt/ti/ccsv8/ccs_base/arm/include/msp.h: 
@@ -33,3 +37,7 @@ main.obj: /opt/ti/ccsv8/ccs_base/arm/include/system_msp432p401r.h
 /opt/ti/ccsv8/ccs_base/arm/include/CMSIS/cmsis_compiler.h: 
 /opt/ti/ccsv8/ccs_base/arm/include/CMSIS/cmsis_ccs.h: 
 /opt/ti/ccsv8/ccs_base/arm/include/system_msp432p401r.h: 
+/opt/ti/ccsv8/tools/compiler/ti-cgt-arm_18.1.1.LTS/include/stdio.h: 
+/opt/ti/ccsv8/tools/compiler/ti-cgt-arm_18.1.1.LTS/include/_ti_config.h: 
+/opt/ti/ccsv8/tools/compiler/ti-cgt-arm_18.1.1.LTS/include/linkage.h: 
+/opt/ti/ccsv8/tools/compiler/ti-cgt-arm_18.1.1.LTS/include/stdarg.h: 
