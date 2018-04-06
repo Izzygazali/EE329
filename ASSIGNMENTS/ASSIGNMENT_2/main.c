@@ -1,20 +1,24 @@
 #include "msp.h"
-#include <stdio.h>
 
-#define FREQ_1_5_MHz 0
-#define FREQ_3_MHz 1
-#define FREQ_6_MHz 2
-#define FREQ_12_MHz 3
-#define FREQ_24_MHz 4
-#define FREQ_48_MHz 5
+// Define Frequency setting used in delay and set DCO functions.
+#define FREQ_1_5_MHz    0
+#define FREQ_3_MHz      1
+#define FREQ_6_MHz      2
+#define FREQ_12_MHz     3
+#define FREQ_24_MHz     4
+#define FREQ_48_MHz     5
 
-float numCycles;
 
+/* Function that sets the DCO Clock frequency
+ * Input: Frequency setting for DCO clock.
+ */
 void set_DCO(int freq)
 {
-    CS ->KEY = CS_KEY_VAL;
-    CS ->CTL0 = 0;
-    switch(freq){
+    CS ->KEY = CS_KEY_VAL;                          //enable writing to clock systems
+    CS ->CTL0 = 0;                                  //clear control register 0
+
+    switch(freq)
+    {                                               //set DCO SEL to desired frequency setting
         case 0:
             CS ->CTL0 |= CS_CTL0_DCORSEL_0;
             break;
@@ -30,27 +34,36 @@ void set_DCO(int freq)
         case 4:
             CS ->CTL0 |= CS_CTL0_DCORSEL_4;
             break;
-        case 5:
-            /* Transition to VCORE Level 1: AM0_LDO --> AM1_LDO */
-                while ((PCM->CTL1 & PCM_CTL1_PMR_BUSY));
-                 PCM->CTL0 = PCM_CTL0_KEY_VAL | PCM_CTL0_AMR_1;
-                while ((PCM->CTL1 & PCM_CTL1_PMR_BUSY));
+        case 5:                                     //for the 48 MHz setting, PCM modifications are necessary
 
-            /* Configure Flash wait-state to 1 for both banks 0 & 1 */
+            /* Transition to VCORE Level 1: AM0_LDO --> AM1_LDO */
+            while ((PCM->CTL1 & PCM_CTL1_PMR_BUSY));
+            PCM->CTL0 = PCM_CTL0_KEY_VAL | PCM_CTL0_AMR_1;
+            while ((PCM->CTL1 & PCM_CTL1_PMR_BUSY));
+
+            /*Configure Flash wait-state to 1 for both banks 0 & 1 */
             FLCTL->BANK0_RDCTL = (FLCTL->BANK0_RDCTL &
              ~(FLCTL_BANK0_RDCTL_WAIT_MASK)) | FLCTL_BANK0_RDCTL_WAIT_1;
             FLCTL->BANK1_RDCTL = (FLCTL->BANK0_RDCTL &
              ~(FLCTL_BANK1_RDCTL_WAIT_MASK)) | FLCTL_BANK1_RDCTL_WAIT_1;
+
+            /*Set the DCO setting to 48 MHz */
             CS ->CTL0 |= CS_CTL0_DCORSEL_5;
             break;
         default:
             break;
     }
-    CS ->CTL1 |= CS_CTL1_SELM__DCOCLK;
-    CS ->KEY = 0;
+
+    CS ->CTL1 |= CS_CTL1_SELM__DCOCLK;              //Set DCO as the source for MCLK
+    CS ->KEY = 0;                                   //disable writing to clock systems
     return;
 }
 
+
+
+/* Function that sets the delays program execution for a given number of micro seconds
+ * Input: Frequency setting for DCO clock.
+ */
 void delay_us(float time_us, int freq)
 {
      float calcCycles;
@@ -107,7 +120,7 @@ void main(void)
 
     while (1){
        P1 ->OUT ^= BIT0;
-       delay_ms(1000,FREQ_3_MHz);
+       delay_ms(100,FREQ_3_MHz);
     }
 }
 
