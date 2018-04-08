@@ -1,0 +1,24 @@
+################################################################################
+# Automatically-generated file. Do not edit!
+################################################################################
+
+# Add inputs and outputs from these tool invocations to the build variables 
+C_SRCS += \
+../src/delay.c 
+
+C_DEPS += \
+./src/delay.d 
+
+OBJS += \
+./src/delay.obj 
+
+OBJS__QUOTED += \
+"src/delay.obj" 
+
+C_DEPS__QUOTED += \
+"src/delay.d" 
+
+C_SRCS__QUOTED += \
+"../src/delay.c" 
+
+

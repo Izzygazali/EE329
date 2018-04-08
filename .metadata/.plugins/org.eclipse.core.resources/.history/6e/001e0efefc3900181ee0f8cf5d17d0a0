@@ -1,0 +1,25 @@
+#include "msp.h"
+#include "delay.h"
+
+
+void main(void)
+{
+    WDT_A->CTL = WDT_A_CTL_PW | WDT_A_CTL_HOLD;     // stop watchdog timer
+
+    P1 ->SEL0 &= -BIT0;                             //GPIO settings for LED
+    P1 ->SEL1 &= -BIT0;
+    P1 ->DIR |= BIT0;
+
+    P4 ->SEL0 |= BIT3;                              //GPIO settings for MCLK (for frequency verification)
+    P4 ->SEL1 &= -BIT3;
+    P4 ->DIR |= BIT3;
+
+    set_DCO(FREQ_12_MHz);                            //set clock frequency
+    while(1){
+        P1->OUT &= -BIT0;
+        delay_us(1000,FREQ_12_MHz);
+    }
+}
+
+
+
