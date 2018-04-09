@@ -17,9 +17,13 @@
 #define RS  BIT1
 #define RW  BIT2
 #define EN  BIT3
+#define Clear_LCD_Command 0x01
+#define Return_Home_Command 0x02
 #define Clear_Upper_Byte 0x0F
 #define Clear_Lower_Byte 0xF0
 #define Mode_4bit 0x30
+#define Second_Line 0xC0
+
 
 
 void Nybble(unsigned char Command){
@@ -34,6 +38,18 @@ void Nybble(unsigned char Command){
     return;
 }
 
+void LCD_Write_Char(unsigned char Letter){
+    P4 -> OUT |= RS;
+    P4 -> OUT &= ~(RW);
+    P4 ->OUT &= Clear_Upper_Byte;
+    P4 -> OUT |= (Letter & Clear_Lower_Byte);
+    Nybble(Letter);
+    P4 ->OUT &= Clear_Upper_Byte;
+    P4 -> OUT |= ((Letter & Clear_Upper_Byte)<<4);
+    Nybble(Letter);
+    return;
+}
+
 
 void LCD_Command(unsigned char Command){
     P4 -> OUT &= ~(RS|RW);
@@ -41,9 +57,36 @@ void LCD_Command(unsigned char Command){
     P4 -> OUT |= (Command & Clear_Lower_Byte);
     Nybble(Command);
     P4 ->OUT &= Clear_Upper_Byte;
-    P4 -> OUT |= ((Command & 0x0F)<<4);
+    P4 -> OUT |= ((Command & Clear_Upper_Byte)<<4);
     Nybble(Command);
     return;
+}
+
+void LCD_Write_String(unsigned char inputString[]){
+    int i = 0;
+    while(inputString[i]!=0){
+        if((inputString[i] == '|') && (inputString[i+1] == 'n')){
+            LCD_Command(Second_Line);
+            i += 2;
+        }
+        LCD_Write_Char(inputString[i]);
+        i++;
+    }
+    return;
+}
+
+void Clear_LCD(){
+    LCD_Command(Clear_LCD_Command);
+    return;
+}
+
+void Return_Home(){
+    LCD_Command(Return_Home_Command);
+    return;
+}
+
+void Set_Cursor_Address(unsigned char Address){
+    LCD_Command(BIT7 | Address);
 }
 
 void LCD_init(void){
@@ -67,21 +110,18 @@ void LCD_init(void){
     return;
 }
 
-
-
 void main(void){
 
     WDTCTL = WDTPW | WDTHOLD;
     set_DCO(FREQ_48_MHz);
     LCD_init();
+    LCD_Write_String("Hello World!");
+    delay_ms(2000, FREQ_48_MHz);
+    Return_Home();
+    Clear_LCD();
+    delay_ms(2000, FREQ_48_MHz);
+    LCD_Write_String("hello|nworld");
 
-    P1 ->SEL0 &= ~BIT0;
-    P1 ->SEL1 &= ~BIT1;
-    P1 ->DIR |= BIT0;
 
-    while (1){
-       P1 ->OUT ^= BIT0;
-       delay_ms(500, FREQ_48_MHz);
-    }
 
 }
