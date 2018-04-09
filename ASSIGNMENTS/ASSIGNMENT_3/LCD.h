@@ -23,6 +23,15 @@
 #define Clear_Upper_Byte 0x0F
 #define Clear_Lower_Byte 0xF0
 #define Mode_4bit 0x30
+#define Clear_LCD_Command 0x01
+#define Return_Home_Command 0x02
+#define Mode_8bit 0x30
+#define Mode_4bit 0x30
+#define Second_Line 0xC0
+#define F_SET_2_LINE_5_8 0x28
+#define Cursor_On 0x08
+#define Entry_Right 0x06
+#define DISP_ON_BLINK 0x0F
 
 void NYBBLE();
 void LCD_COMMAND(unsigned char command);

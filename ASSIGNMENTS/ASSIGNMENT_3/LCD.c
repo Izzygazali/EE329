@@ -31,7 +31,7 @@ void LCD_COMMAND(unsigned char command){
  */
 void LCD_CLR()
 {
-    LCD_COMMAND(0x01);
+    LCD_COMMAND(Clear_LCD_Command);
 }
 
 /* Function utilizes LCD_COMMAND to send command that
@@ -39,7 +39,7 @@ void LCD_CLR()
  */
 void LCD_HOME()
 {
-    LCD_COMMAND(0x02);
+    LCD_COMMAND(Return_Home_Command);
 }
 
 /* Function utilizes LCD_COMMAND to send command that
@@ -84,6 +84,10 @@ void WRITE_STR_LCD(char word[])
     int letterCnt = 0;
     while(word[letterCnt]!=0)
     {
+        if((word[letterCnt] == '|') && (word[letterCnt+1] == 'n')){
+            LCD_COMMAND(Second_Line);
+            letterCnt += 2;
+        }
         WRITE_CHAR_LCD(word[letterCnt]);
         letterCnt++;
     }
@@ -101,7 +105,7 @@ void LCD_init(void){
     delay_ms(500,FREQ_48_MHz);
 
     P4 ->OUT &= Clear_Upper_Byte;
-    P4 ->OUT |= 0x30;
+    P4 ->OUT |= Mode_8bit;
 
     NYBBLE();
     delay_ms(5,FREQ_48_MHz);
@@ -111,19 +115,19 @@ void LCD_init(void){
     delay_ms(5,FREQ_48_MHz);
 
     P4 ->OUT &= Clear_Upper_Byte;
-    P4 ->OUT |= 0x20;
+    P4 ->OUT |= Mode_4bit;
     NYBBLE();
     delay_ms(5,FREQ_48_MHz);
 
-    LCD_COMMAND(0x28);
+    LCD_COMMAND(F_SET_2_LINE_5_8);
     delay_ms(5,FREQ_48_MHz);
-    LCD_COMMAND(0x08);
+    LCD_COMMAND(Cursor_On);
     delay_ms(5,FREQ_48_MHz);
-    LCD_COMMAND(0x01);
+    LCD_COMMAND(Clear_LCD_Command);
     delay_ms(5,FREQ_48_MHz);
-    LCD_COMMAND(0x06);
+    LCD_COMMAND(Entry_Right);
     delay_ms(5,FREQ_48_MHz);
-    LCD_COMMAND(0x0F);
+    LCD_COMMAND(DISP_ON_BLINK);
     return;
 }
 
