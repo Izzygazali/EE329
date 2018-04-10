@@ -15,12 +15,22 @@ void NYBBLE(){
  * command to the LCD
  * Inputs: command = 8 bit command character to send to LCD */
 void LCD_COMMAND(unsigned char command){
+    // Set RS and RW to zero
     P4 -> OUT &= ~(RS|RW);
+    // Put 4-bit half-command into the correct place in P4
+    // by first clearing it then "oring" with relevant part
+    // of the command
     P4 ->OUT &= Clear_Upper_Byte;
     P4 -> OUT |= (command & Clear_Lower_Byte);
+    // Toggle Enable
     NYBBLE();
+    // Put 4-bit half-command into the correct place in P4
+    // by first clearing it then "oring" with relevant part
+    // of the command
     P4 ->OUT &= Clear_Upper_Byte;
+    //Clear top nibble and shift lower nibble to upper nibble
     P4 -> OUT |= (command & 0x0F)<<4;
+    // Toggle Enable
     NYBBLE();
     delay_ms(2, FREQ_48_MHz);
     return;
@@ -49,6 +59,8 @@ void LCD_HOME()
  */
 void SET_CUR_POS_LCD(unsigned char address)
 {
+    // 0x80 sets the correct bit to use DDRAM counter
+    // set then address sets the counter
     LCD_COMMAND(0x80 | address);
 }
 
@@ -57,7 +69,9 @@ void SET_CUR_POS_LCD(unsigned char address)
  * Inputs: data = 8 bit data character to send to LCD */
 void LCD_DATA(unsigned char data)
 {
+      // Set RS to one and RW to zero
       P4 -> OUT |= RS | (~RW);
+      // Rest is same as LCD_COMMAND
       P4 ->OUT &= Clear_Upper_Byte;
       P4 -> OUT |= (data & Clear_Lower_Byte);
       NYBBLE();
@@ -73,6 +87,7 @@ void LCD_DATA(unsigned char data)
  * Inputs: letter = 8 bit letter character to send to LCD*/
 void WRITE_CHAR_LCD(unsigned char letter)
 {
+    //Call data write function with letter
     LCD_DATA(letter);
     return;
 }
@@ -82,6 +97,10 @@ void WRITE_CHAR_LCD(unsigned char letter)
 void WRITE_STR_LCD(char word[])
 {
     int letterCnt = 0;
+    // take array of characters and write one at a time
+    // with LCD_CHAR_LCD. "|n" is defined as "newline"
+    // and will move the cursor to the second line of
+    // the LCD
     while(word[letterCnt]!=0)
     {
         if((word[letterCnt] == '|') && (word[letterCnt+1] == 'n')){
@@ -98,36 +117,34 @@ void WRITE_STR_LCD(char word[])
  * boot up of the LCD to make the LCD operationalble in 4-bit mode.
  * Inputs: letter = 8 bit word character array to send to LCD*/
 void LCD_init(void){
+    // set pins for driving LCD as output and initialize to zero
     P4 -> SEL0 &= ~(0xFE);
     P4 -> SEL1 &= ~(0xFE);
     P4 -> DIR |=   (0xFE);
     P4 -> OUT &=  ~(0xFE);
     delay_ms(500,FREQ_48_MHz);
-
+    // Send command to "wake-up" display three times
     P4 ->OUT &= Clear_Upper_Byte;
-    P4 ->OUT |= Mode_8bit;
-
+    P4 ->OUT |= 0x30;
     NYBBLE();
     delay_ms(5,FREQ_48_MHz);
     NYBBLE();
     delay_ms(5,FREQ_48_MHz);
     NYBBLE();
     delay_ms(5,FREQ_48_MHz);
-
+    // Set LCD to 4-bit mode
     P4 ->OUT &= Clear_Upper_Byte;
-    P4 ->OUT |= Mode_4bit;
+    P4 ->OUT |= 0x20;
     NYBBLE();
     delay_ms(5,FREQ_48_MHz);
-
-    LCD_COMMAND(F_SET_2_LINE_5_8);
-    delay_ms(5,FREQ_48_MHz);
-    LCD_COMMAND(Cursor_On);
-    delay_ms(5,FREQ_48_MHz);
-    LCD_COMMAND(Clear_LCD_Command);
-    delay_ms(5,FREQ_48_MHz);
-    LCD_COMMAND(Entry_Right);
-    delay_ms(5,FREQ_48_MHz);
-    LCD_COMMAND(DISP_ON_BLINK);
+    //Turn display on, enable cursor, and make it blink
+    LCD_COMMAND(0x0F);
+    delay_us(100,FREQ_48_MHz);
+    //Clear display
+    LCD_COMMAND(0x01);
+    delay_ms(2,FREQ_48_MHz);
+    // Set entry mode to "right"
+    LCD_COMMAND(0x06);
     return;
 }
 
