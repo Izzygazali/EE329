@@ -94,5 +94,3 @@ void delay_ms(float time_ms, int freq)
     return;						//It isn't multiplied by 1000 to account for the time introduced by calling delay_us
 }
 
-
-

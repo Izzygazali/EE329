@@ -11,4 +11,3 @@
 void set_DCO(int freq);			//freq: sets DCO to desired freqency using defined frequency values.
 void delay_us(float time_us, int freq);	//time_us: time to delay in microseconds, freq: the current DCO frequency that is set.
 void delay_ms(float time_ms, int freq);	//time_ms: time to delay in milliseconds, freq: the current DCO frequency that is set.
-

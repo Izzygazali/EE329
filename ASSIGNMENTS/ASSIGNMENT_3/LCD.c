@@ -96,7 +96,7 @@ void WRITE_CHAR_LCD(unsigned char letter)
  * Inputs: letter = 8 bit word character array to send to LCD*/
 void WRITE_STR_LCD(char word[])
 {
-    int letterCnt = 0;
+    uint16_t letterCnt = 0;
     // take array of characters and write one at a time
     // with LCD_CHAR_LCD. "|n" is defined as "newline"
     // and will move the cursor to the second line of
