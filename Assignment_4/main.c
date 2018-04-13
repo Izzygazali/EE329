@@ -4,6 +4,7 @@
 #include "..\Assignment_2\delay.c"
 #include "..\Assignment_3\LCD.c"
 
+
 #define ROW1 BIT4
 #define ROW2 BIT5
 #define ROW3 BIT6
@@ -14,7 +15,14 @@
 #define COL3 BIT7
 #define NO_KEY_PRESS 0xFF
 
-void keypad_Init()
+
+/*
+ * Function that initializes the keypad. Rows are set
+ * to ports 2.4-2.7. Columns are set to ports 3.5-3.7
+ * Inputs: None
+ * Return: None
+ */
+void KEYPAD_INIT(void)
 {
     //set ports 2.4-2.7 as inputs for rows.
     P2 -> SEL0 &= ~(ROW1 + ROW2 + ROW3 + ROW4);
@@ -33,8 +41,14 @@ void keypad_Init()
     P3 -> DIR  &= ~(COL1 + COL2 + COL3);
 }
 
-
-uint8_t keypad_getchar(void)
+/*
+ * Function that returns the value of the current key
+ * pressed on the keypad. The key value for * is 10
+ * and the key value for # 12.
+ * Inputs: None
+ * Return: uint8_t, unsigned 8-bit integer key value
+ */
+uint8_t KEYPAD_GET_KEY(void)
 {
     //initialize variables
     uint8_t col, rows, key;
@@ -80,8 +94,13 @@ uint8_t keypad_getchar(void)
     if(key == 11){key = 0;}
     return key;
 }
-
-uint8_t keypad_ASCII(uint8_t key){
+/*
+ * Function that takes in the keypad key value and returns
+ * the corresponding ASCII value of the key.
+ * Inputs: uint8_t, unsigned 8-bit integer key value
+ * Return: uint8_t, unsigned 8-bit integer ASCII value of key
+ */
+uint8_t KEYPAD_ASCII(uint8_t key){
     uint8_t asciiVal;
     //If key is *
     if (key == 10){
@@ -99,33 +118,90 @@ uint8_t keypad_ASCII(uint8_t key){
     return asciiVal;
 }
 
-void keypad_To_LCD()
+/*
+ * Function that waits for a button press on the keypad and
+ * outputs the key value to the LCD.
+ * Inputs: None
+ * Return: None
+ */
+void KEYPAD_TO_LCD()
 {
     uint8_t key;
     while(1)
     {
-        key = keypad_getchar();
+        key = KEYPAD_GET_KEY();
+        //If key press detected, output to LCD.
         if(key != NO_KEY_PRESS)
         {
             delay_ms(250, FREQ_48_MHz);
-            LCD_Write_Char(keypad_ASCII(key));
+            LCD_Write_Char(KEYPAD_ASCII(key));
             break;
         }
     }
 }
+
+
+
 
 void main(void)
 {
     //Disable Watchdog Timer
     WDTCTL = WDTPW | WDTHOLD;
     set_DCO(FREQ_48_MHz);
-    keypad_Init();
+    KEYPAD_INIT();
     LCD_init();
+    uint8_t key, oldKey;
+    P2 -> SEL0 &= ~(BIT0 + BIT1 + BIT2);
+    P2 -> SEL1 &= ~(BIT0 + BIT1 + BIT2);
+    P2 -> DIR  |= (BIT0 + BIT1 + BIT2);
+
+    while(1)
+    {
+        key = KEYPAD_GET_KEY();
+        if(key != NO_KEY_PRESS && key != oldKey)
+        {
+            Clear_LCD();
+            Return_Home();
+            LCD_Write_Char(KEYPAD_ASCII(key));
+            P2->OUT = (key & (BIT0 + BIT1 + BIT2));
+            oldKey = key;
+        }
+        else if( key == NO_KEY_PRESS){
+            Clear_LCD();
+            Return_Home();
+            P2->OUT &= ~(BIT0 + BIT1 + BIT2);
+            oldKey = key;
+        }
+        __delay_cycles(5000);
+
+    }
+
+
+
+    /*
     int i;
     for(i=0; i<30; i++){
-        keypad_To_LCD();
+        KEYPAD_TO_LCD();
         if(i == 15){
             LCD_newLine();
         }
     }
+    */
+
+
+    /*
+    P2 -> SEL0 &= ~(BIT0 + BIT1 + BIT2);
+    P2 -> SEL1 &= ~(BIT0 + BIT1 + BIT2);
+    P2 -> DIR  |= (BIT0 + BIT1 + BIT2);
+    uint8_t key;
+    while(1){
+        key = KEYPAD_GET_KEY();
+        if (key != NO_KEY_PRESS)
+        {
+            P2->OUT = (key & (BIT0 + BIT1 + BIT2));
+            Clear_LCD();
+            KEYPAD_TO_LCD();
+        }
+    }
+    */
 }
