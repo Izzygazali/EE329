@@ -1,3 +1,2 @@
 # EE329
-
-Izzy's Branch
+This is the main branch. After each completed assignment/project this is updated.
