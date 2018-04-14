@@ -9,14 +9,14 @@
 void KEYPAD_INIT(void)
 {
     //set ports 2.4-2.7 as inputs for rows.
-    P5 -> SEL0 &= ~(ROW1 + ROW2 + ROW3 + ROW4);
-    P5 -> SEL1 &= ~(ROW1 + ROW2 + ROW3 + ROW4);
-    P5 -> DIR  &= ~(ROW1 + ROW2 + ROW3 + ROW4);
+    P2 -> SEL0 &= ~(ROW1 + ROW2 + ROW3 + ROW4);
+    P2 -> SEL1 &= ~(ROW1 + ROW2 + ROW3 + ROW4);
+    P2 -> DIR  &= ~(ROW1 + ROW2 + ROW3 + ROW4);
 
     //Enable pull down resistor be setting REN high and
     //output port low.
-    P5 -> REN  |= (ROW1 + ROW2 + ROW3 + ROW4);
-    P5 -> OUT  &= ~(ROW1 + ROW2 + ROW3 + ROW4);
+    P2 -> REN  |= (ROW1 + ROW2 + ROW3 + ROW4);
+    P2 -> OUT  &= ~(ROW1 + ROW2 + ROW3 + ROW4);
 
     //set ports 3.5 -3.7 for columns
     //Initially the ports are set as inputs for safety
@@ -44,7 +44,7 @@ uint8_t KEYPAD_GET_KEY(void)
     __delay_cycles(25);
 
     // read inputs from rows 1 - 4
-    rows = P5 -> IN & (ROW1 + ROW2 + ROW3 + ROW4);
+    rows = P2 -> IN & (ROW1 + ROW2 + ROW3 + ROW4);
 
     //If all rows are low, no button press.
     if(rows == 0){return NO_KEY_PRESS;}
@@ -55,7 +55,7 @@ uint8_t KEYPAD_GET_KEY(void)
         P3 -> OUT &= ~(COL1 + COL2 + COL3);
         P3 -> OUT |= (COL1 << col);
         __delay_cycles(25);
-        rows = (P5 -> IN & (ROW1 + ROW2 + ROW3 + ROW4))>>4;
+        rows = (P2 -> IN & (ROW1 + ROW2 + ROW3 + ROW4))>>4;
         if(rows != 0){break;}
     }
 
