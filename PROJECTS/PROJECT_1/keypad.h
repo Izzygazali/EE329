@@ -1,5 +1,5 @@
 #include "msp.h"
-#include "../ASSIGNMENT_3/LCD.h"
+#include "LCD.h"
 
 /* P2.4 -> ROW1
  * P2.5 -> ROW2
