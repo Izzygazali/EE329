@@ -42,44 +42,105 @@ uint8_t CHECK_KEY(uint8_t digit, uint8_t digit_num)
     }
 }
 
+struct NS_REPEAT {
+    uint8_t NS;
+    uint8_t repeat;
+};
+
+struct NS_REPEAT LOCKED_LOGIC(void)
+{
+    static uint8_t digit_num = 0;
+    static uint8_t digit_check = 0;
+    uint8_t repeat = 0;
+    uint8_t NS;
+
+    if (digit_num == 0){
+        LCD_CLR();
+        LCD_HOME();
+        WRITE_STR_LCD("LOCKED");
+        SET_CUR_POS_LCD(0x40);
+        WRITE_STR_LCD("ENTER KEY:");
+    }
+    if (digit != 0xFF){
+        WRITE_CHAR_LCD(digit);
+        digit_check += CHECK_KEY(digit, digit_num);
+        digit_num++;
+    }
+    if (digit_num > 3 && digit_check == 4){
+      //  __delay_cycles(1000000);
+        digit_num = 0;
+        digit_check = 0;
+        digit = 0xFF;
+        NS = UNLOCKED;
+        repeat = 1;
+    }else if(digit_num > 3){
+       // __delay_cycles(1000000);
+        LCD_CLR();
+        LCD_HOME();
+        digit_num = 0;
+        digit_check = 0;
+        digit = 0xFF;
+        NS = LOCKED;
+        repeat = 1;
+    }else{
+        NS = LOCKED;
+    }
+    struct NS_REPEAT ret = {NS, repeat};
+    return ret;
+}
+
+struct NS_REPEAT UNLOCKED_LOGIC(void)
+{
+    uint8_t repeat = 0;
+    uint8_t NS;
+    LCD_CLR();
+    LCD_HOME();
+    WRITE_STR_LCD("HELLO WORLD!");
+    if(digit == 42){
+        NS = CLEAR;
+        repeat = 1;
+    }else{
+        NS = UNLOCKED;
+    }
+    struct NS_REPEAT ret = {NS, repeat};
+    return ret;
+}
+
+struct NS_REPEAT CLEAR_LOGIC(void)
+{
+    uint8_t repeat = 0;
+    uint8_t NS;
+    LCD_CLR();
+    digit = 0xFF;
+    NS = LOCKED;
+    repeat = 1;
+    struct NS_REPEAT ret = {NS, repeat};
+    return ret;
+}
 
 void LOCK_FSM()
 {
     static uint8_t PS = LOCKED;
-    static uint8_t digit_num = 0;
-    static uint8_t digit_check = 0;
     uint8_t NS;
-    _Bool repeat = 1;
-
+    uint8_t repeat = 1;
+    struct NS_REPEAT ret;
     while(repeat != 0){
         repeat = 0;
         switch(PS){
             case LOCKED:
-                if (digit != 0xFF){
-                    WRITE_CHAR_LCD(digit);
-                    digit_check += CHECK_KEY(digit, digit_num);
-                    digit_num++;
-                }
-                if (digit_num > 3 && digit_check == 4){
-                    digit_num = 0;
-                    NS = UNLOCKED;
-                    repeat = 1;
-                }else if(digit_num > 3){
-                    LCD_CLR();
-                    LCD_HOME();
-                    digit_num = 0;
-                    NS = LOCKED;
-                }else{
-                    NS = LOCKED;
-                }
+                ret = LOCKED_LOGIC();
+                NS = ret.NS;
+                repeat = ret.repeat;
                 break;
             case UNLOCKED:
-                NS = UNLOCKED;
-                P1 ->OUT |= BIT0;
-
+                ret = UNLOCKED_LOGIC();
+                NS = ret.NS;
+                repeat = ret.repeat;
                 break;
             case CLEAR:
-                NS = LOCKED;
+                ret = CLEAR_LOGIC();
+                NS = ret.NS;
+                repeat = ret.repeat;
                 break;
             default:
                 NS = LOCKED;
@@ -98,10 +159,10 @@ void main(void)
     P1 ->OUT &= ~BIT0;
     set_DCO(FREQ_3_MHz);
     LCD_init();
-    LCD_CLR();
     INIT_KEYPAD();
-   // int oldKey = 60;
     digit = 0xFF;
+    SCB->SCR |= SCB_SCR_SLEEPONEXIT_Msk;
+    SCB->SCR |= (SCB_SCR_SLEEPDEEP_Msk);
     __enable_irq();
     while(1);
 }
@@ -109,10 +170,7 @@ void main(void)
 void PORT5_IRQHandler(void)
 {
     digit = GET_CHAR_KEYPAD();
-
     LOCK_FSM();
-
-    __delay_cycles(100000);
     P5 -> IFG  &= ~(ROW1 + ROW2 + ROW3 + ROW4);
 }
 

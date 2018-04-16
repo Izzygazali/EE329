@@ -5,8 +5,12 @@ int digit;
 
 void INIT_KEYPAD(void)
 {
+    P3 -> SEL0 &= ~(COL1 + COL2 + COL3);
+    P3 -> SEL1 &= ~(COL1 + COL2 + COL3);
     P3 ->DIR  |=  (COL1 + COL2 + COL3);
     P3 ->OUT  |=  (COL1 + COL2 + COL3);
+    P5 -> SEL0 &= ~(ROW1 + ROW2 + ROW3 + ROW4);
+    P5 -> SEL1 &= ~(ROW1 + ROW2 + ROW3 + ROW4);
     P5 -> IE   |=  (ROW1 + ROW2 + ROW3 + ROW4);
     P5 -> REN  |=  (ROW1 + ROW2 + ROW3 + ROW4);
     P5 -> IES  &=  ~(ROW1 + ROW2 + ROW3 + ROW4);
