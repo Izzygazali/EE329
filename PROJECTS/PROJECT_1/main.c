@@ -67,14 +67,14 @@ struct NS_REPEAT LOCKED_LOGIC(void)
         digit_num++;
     }
     if (digit_num > 3 && digit_check == 4){
-      //  __delay_cycles(1000000);
+        __delay_cycles(1000000);
         digit_num = 0;
         digit_check = 0;
         digit = 0xFF;
         NS = UNLOCKED;
         repeat = 1;
     }else if(digit_num > 3){
-       // __delay_cycles(1000000);
+        __delay_cycles(1000000);
         LCD_CLR();
         LCD_HOME();
         digit_num = 0;
