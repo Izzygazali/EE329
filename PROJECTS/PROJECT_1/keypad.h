@@ -9,6 +9,9 @@
  * P3.6 -> COL2
  * P3.7 -> COL3
  */
+
+extern int digit;
+
 #define LEDR BIT0
 #define LEDG BIT1
 #define LEDB BIT2
@@ -24,4 +27,5 @@
 
 uint8_t GET_CHAR_KEYPAD(void);
 void INIT_KEYPAD(void);
+
 

@@ -1,6 +1,8 @@
 #include "msp.h"
-#include "keypad.h"
+#include "delay.h"
 #include "LCD.h"
+#include "keypad.h"
+#include <stdio.h>
 
 /* States
  * 0 => LOCKED
@@ -12,81 +14,105 @@
 #define LOCKED 0
 #define UNLOCKED 1
 #define CLEAR 2
-#define CORRECT_KEY 5
+#define CLR_KEY 0x1234
 
-int key;
+#define ROW1 BIT4
+#define ROW2 BIT5
+#define ROW3 BIT6
+#define ROW4 BIT7
+
+#define COL1 BIT5
+#define COL2 BIT6
+#define COL3 BIT7
+
+#define LEDR BIT0
+#define LEDG BIT1
+#define LEDB BIT2
+
+const uint8_t CORR_KEY[] = {49,50,51,52};
+
+
+uint8_t CHECK_KEY(uint8_t digit, uint8_t digit_num)
+{
+    if (CORR_KEY
+            [digit_num] == digit){
+        return 1;
+    }else{
+        return 0;
+    }
+}
+
 
 void LOCK_FSM()
 {
-    int PS = LOCKED;
-    int OLD_PS = PS;
-    int NS;
-    while(PS != OLD_PS)
-    {
-        switch (PS){
+    static uint8_t PS = LOCKED;
+    static uint8_t digit_num = 0;
+    static uint8_t digit_check = 0;
+    uint8_t NS;
+    _Bool repeat = 1;
+
+    while(repeat != 0){
+        repeat = 0;
+        switch(PS){
             case LOCKED:
-                if (key = CORRECT_KEY){
+                if (digit != 0xFF){
+                    WRITE_CHAR_LCD(digit);
+                    digit_check += CHECK_KEY(digit, digit_num);
+                    digit_num++;
+                }
+                if (digit_num > 3 && digit_check == 4){
+                    digit_num = 0;
                     NS = UNLOCKED;
+                    repeat = 1;
+                }else if(digit_num > 3){
+                    LCD_CLR();
+                    LCD_HOME();
+                    digit_num = 0;
+                    NS = LOCKED;
                 }else{
                     NS = LOCKED;
                 }
+                break;
             case UNLOCKED:
-                NS = LOCKED;
+                NS = UNLOCKED;
+                P1 ->OUT |= BIT0;
+
+                break;
             case CLEAR:
                 NS = LOCKED;
-            case default:
+                break;
+            default:
                 NS = LOCKED;
-                return;
+                break;
         }
         PS = NS;
-    }S
-}
-
-
-void INIT_COMP()
-{
-    LCD_init();
-    INIT_KEYPAD();
+    }
     return;
 }
-
-
 
 
 void main(void)
 {
     WDTCTL = WDTPW | WDTHOLD;
-    INIT_COMP();
-
-    uint8_t state = 0;
-
-
-
-}
-
-
-/*void main(void)
-{
-    int oldKey = 0;
+    P1 ->DIR |= BIT0;
+    P1 ->OUT &= ~BIT0;
+    set_DCO(FREQ_3_MHz);
     LCD_init();
     LCD_CLR();
     INIT_KEYPAD();
-    WDTCTL = WDTPW | WDTHOLD;
-    while(1){
-        uint8_t key = GET_CHAR_KEYPAD();
-        if (key != oldKey && key != 0xFF){
-            LCD_CLR();
-            LCD_HOME();
-            WRITE_CHAR_LCD(key);
-            P2->OUT = key & (LEDR + LEDG + LEDB);
-            oldKey = key;
-        }else if(key == 0xFF){
-            LCD_CLR();
-            LCD_HOME();
-            P2->OUT &= ~(LEDR + LEDG + LEDB);
-            oldKey = key;
-        }
-        __delay_cycles(5000);
-    }
+   // int oldKey = 60;
+    digit = 0xFF;
+    __enable_irq();
+    while(1);
+}
 
-}*/
+void PORT5_IRQHandler(void)
+{
+    digit = GET_CHAR_KEYPAD();
+
+    LOCK_FSM();
+
+    __delay_cycles(100000);
+    P5 -> IFG  &= ~(ROW1 + ROW2 + ROW3 + ROW4);
+}
+

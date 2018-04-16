@@ -6,7 +6,7 @@
  * in data or command. */
 void NYBBLE(){
     P4 -> OUT |= EN;
-    delay_us(50, FREQ_48_MHz);
+    delay_us(50, FREQ_3_MHz);
     P4 -> OUT &= ~EN;
     return;
 }
@@ -32,7 +32,7 @@ void LCD_COMMAND(unsigned char command){
     P4 -> OUT |= (command & 0x0F)<<4;
     // Toggle Enable
     NYBBLE();
-    delay_ms(2, FREQ_48_MHz);
+    delay_ms(2, FREQ_3_MHz);
     return;
 }
 
@@ -78,7 +78,7 @@ void LCD_DATA(unsigned char data)
       P4 ->OUT &= Clear_Upper_Byte;
       P4 -> OUT |= (data & 0x0F)<<4;
       NYBBLE();
-      delay_us(50, FREQ_48_MHz);
+      delay_us(50, FREQ_3_MHz);
       return;
 }
 
@@ -122,27 +122,27 @@ void LCD_init(void){
     P4 -> SEL1 &= ~(0xFE);
     P4 -> DIR |=   (0xFE);
     P4 -> OUT &=  ~(0xFE);
-    delay_ms(500,FREQ_48_MHz);
+    delay_ms(500,FREQ_3_MHz);
     // Send command to "wake-up" display three times
     P4 ->OUT &= Clear_Upper_Byte;
     P4 ->OUT |= 0x30;
     NYBBLE();
-    delay_ms(5,FREQ_48_MHz);
+    delay_ms(5,FREQ_3_MHz);
     NYBBLE();
-    delay_ms(5,FREQ_48_MHz);
+    delay_ms(5,FREQ_3_MHz);
     NYBBLE();
-    delay_ms(5,FREQ_48_MHz);
+    delay_ms(5,FREQ_3_MHz);
     // Set LCD to 4-bit mode
     P4 ->OUT &= Clear_Upper_Byte;
     P4 ->OUT |= 0x20;
     NYBBLE();
-    delay_ms(5,FREQ_48_MHz);
+    delay_ms(5,FREQ_3_MHz);
     //Turn display on, enable cursor, and make it blink
     LCD_COMMAND(0x0F);
-    delay_us(100,FREQ_48_MHz);
+    delay_us(100,FREQ_3_MHz);
     //Clear display
     LCD_COMMAND(0x01);
-    delay_ms(2,FREQ_48_MHz);
+    delay_ms(2,FREQ_3_MHz);
     // Set entry mode to "right"
     LCD_COMMAND(0x06);
     return;
