@@ -13,6 +13,8 @@ void INIT_KEYPAD(void)
     P5 -> SEL1 &= ~(ROW1 + ROW2 + ROW3 + ROW4);
     P5 -> IE   |=  (ROW1 + ROW2 + ROW3 + ROW4);
     P5 -> REN  |=  (ROW1 + ROW2 + ROW3 + ROW4);
+    P5 -> OUT  &=  ~(ROW1 + ROW2 + ROW3 + ROW4);
+
     P5 -> IES  &=  ~(ROW1 + ROW2 + ROW3 + ROW4);
     P5 -> IFG  &=  ~(ROW1 + ROW2 + ROW3 + ROW4);
     NVIC->ISER[1] = 1 << ((PORT5_IRQn) & 31);

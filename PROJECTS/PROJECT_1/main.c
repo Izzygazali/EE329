@@ -14,7 +14,7 @@
 #define LOCKED 0
 #define UNLOCKED 1
 #define CLEAR 2
-#define CLR_KEY 0x1234
+#define CLR_KEY 42
 
 #define ROW1 BIT4
 #define ROW2 BIT5
@@ -34,12 +34,10 @@ const uint8_t CORR_KEY[] = {49,50,51,52};
 
 uint8_t CHECK_KEY(uint8_t digit, uint8_t digit_num)
 {
-    if (CORR_KEY
-            [digit_num] == digit){
+    if (CORR_KEY[digit_num] == digit)
         return 1;
-    }else{
+    else
         return 0;
-    }
 }
 
 struct NS_REPEAT {
@@ -61,8 +59,8 @@ struct NS_REPEAT LOCKED_LOGIC(void)
         SET_CUR_POS_LCD(0x40);
         WRITE_STR_LCD("ENTER KEY:");
     }
-    if (digit != 0xFF){
-        WRITE_CHAR_LCD(digit);
+    if (digit != 0xFF && digit != CLR_KEY){
+        WRITE_CHAR_LCD('*');
         digit_check += CHECK_KEY(digit, digit_num);
         digit_num++;
     }
@@ -82,6 +80,11 @@ struct NS_REPEAT LOCKED_LOGIC(void)
         digit = 0xFF;
         NS = LOCKED;
         repeat = 1;
+    }else if(digit == CLR_KEY){
+        NS = CLEAR;
+        repeat = 1;
+        digit_num = 0;
+        digit_check = 0;
     }else{
         NS = LOCKED;
     }
@@ -96,7 +99,7 @@ struct NS_REPEAT UNLOCKED_LOGIC(void)
     LCD_CLR();
     LCD_HOME();
     WRITE_STR_LCD("HELLO WORLD!");
-    if(digit == 42){
+    if(digit == CLR_KEY){
         NS = CLEAR;
         repeat = 1;
     }else{
@@ -108,12 +111,11 @@ struct NS_REPEAT UNLOCKED_LOGIC(void)
 
 struct NS_REPEAT CLEAR_LOGIC(void)
 {
-    uint8_t repeat = 0;
+    uint8_t repeat = 1;
     uint8_t NS;
     LCD_CLR();
     digit = 0xFF;
     NS = LOCKED;
-    repeat = 1;
     struct NS_REPEAT ret = {NS, repeat};
     return ret;
 }
@@ -124,7 +126,7 @@ void LOCK_FSM()
     uint8_t NS;
     uint8_t repeat = 1;
     struct NS_REPEAT ret;
-    while(repeat != 0){
+    while(repeat == 1){
         repeat = 0;
         switch(PS){
             case LOCKED:
@@ -159,18 +161,26 @@ void main(void)
     P1 ->OUT &= ~BIT0;
     set_DCO(FREQ_3_MHz);
     LCD_init();
+    LCD_CLR();
+    LCD_HOME();
+    WRITE_STR_LCD("LOCKED");
+    SET_CUR_POS_LCD(0x40);
+    WRITE_STR_LCD("ENTER KEY:");
     INIT_KEYPAD();
     digit = 0xFF;
     SCB->SCR |= SCB_SCR_SLEEPONEXIT_Msk;
     SCB->SCR |= (SCB_SCR_SLEEPDEEP_Msk);
     __enable_irq();
-    while(1);
+    //while(1);
+    __sleep();
 }
 
 void PORT5_IRQHandler(void)
 {
-    digit = GET_CHAR_KEYPAD();
-    LOCK_FSM();
-    P5 -> IFG  &= ~(ROW1 + ROW2 + ROW3 + ROW4);
+    if(P5 ->IFG & (ROW1 + ROW2 + ROW3 + ROW4)){
+        digit = GET_CHAR_KEYPAD();
+        LOCK_FSM();
+        P5 -> IFG  &= ~(ROW1 + ROW2 + ROW3 + ROW4);
+    }
 }
 
