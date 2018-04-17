@@ -1,4 +1,3 @@
-#include "msp.h"
 #include "delay.h"
 
 /* Function that sets the DCO Clock frequency.

@@ -14,7 +14,6 @@
  */
 #include "msp.h"
 #include "delay.h"
-#include <string.h>
 
 //define some useful constants used in LCD.c
 #define RS  BIT1

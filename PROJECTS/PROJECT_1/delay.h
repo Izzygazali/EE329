@@ -1,3 +1,5 @@
+#include "msp.h"
+
 /*Define integer associated with the various availble DCO frequencies.*/
 /*This function will also set MCLK to the DCO.*/
 #define FREQ_1_5_MHz    0
