@@ -73,13 +73,9 @@ struct NS_REPEAT LOCKED_LOGIC(void)
         repeat = 1;
     }else if(digit_num > 3){
         __delay_cycles(1000000);
-        LCD_CLR();
-        LCD_HOME();
         digit_num = 0;
         digit_check = 0;
-        digit = 0xFF;
-        NS = LOCKED;
-        repeat = 1;
+        NS = CLEAR;
     }else if(digit == CLR_KEY){
         NS = CLEAR;
         repeat = 1;
