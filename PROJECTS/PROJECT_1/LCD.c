@@ -1,9 +1,13 @@
-/* Engineer(s): Ezzeddeen Gazali and Tyler Starr
- * Create Date: 04/07/2018 */
+/*
+ * Engineer(s): Ezzeddeen Gazali and Tyler Starr
+ * Create Date: 04/07/2018
+ */
 #include "LCD.h"
 
-/* Function toggles EN to trigger LCD to read
- * in data or command. */
+/*
+ * Function toggles EN to trigger LCD to read
+ * in data or command.
+ */
 void NYBBLE(){
     P4 -> OUT |= EN;
     delay_us(50, FREQ_3_MHz);
@@ -11,9 +15,11 @@ void NYBBLE(){
     return;
 }
 
-/* Function performs operations need to send a
+/*
+ * Function performs operations need to send a
  * command to the LCD
- * Inputs: command = 8 bit command character to send to LCD */
+ * Inputs: command = 8 bit command character to send to LCD
+ */
 void LCD_COMMAND(unsigned char command){
     // Set RS and RW to zero
     P4 -> OUT &= ~(RS|RW);
@@ -36,7 +42,8 @@ void LCD_COMMAND(unsigned char command){
     return;
 }
 
-/* Function utilizes LCD_COMMAND to send command that
+/*
+ * Function utilizes LCD_COMMAND to send command that
  * clears the LCD.
  */
 void LCD_CLR()
@@ -44,7 +51,8 @@ void LCD_CLR()
     LCD_COMMAND(Clear_LCD_Command);
 }
 
-/* Function utilizes LCD_COMMAND to send command that
+/*
+ * Function utilizes LCD_COMMAND to send command that
  * sets the cursor to "home", the top left of the LCD.
  */
 void LCD_HOME()
@@ -52,7 +60,8 @@ void LCD_HOME()
     LCD_COMMAND(Return_Home_Command);
 }
 
-/* Function utilizes LCD_COMMAND to send command that
+/*
+ * Function utilizes LCD_COMMAND to send command that
  * sets the cursor position to a desired address.
  * Inputs: address = address in memory you want to set
  * DDRAM counter to, effectively changing cursor position.
@@ -83,8 +92,10 @@ void LCD_DATA(unsigned char data)
 }
 
 
-/* Function writes a character to the LCD.
- * Inputs: letter = 8 bit letter character to send to LCD*/
+/*
+ * Function writes a character to the LCD.
+ * Inputs: letter = 8 bit letter character to send to LCD
+ */
 void WRITE_CHAR_LCD(unsigned char letter)
 {
     //Call data write function with letter
@@ -92,8 +103,10 @@ void WRITE_CHAR_LCD(unsigned char letter)
     return;
 }
 
-/* Function writes a String to the LCD.
- * Inputs: letter = 8 bit word character array to send to LCD*/
+/*
+ * Function writes a String to the LCD.
+ * Inputs: letter = 8 bit word character array to send to LCD
+ */
 void WRITE_STR_LCD(char word[])
 {
     uint16_t letterCnt = 0;
@@ -113,9 +126,11 @@ void WRITE_STR_LCD(char word[])
     return;
 }
 
-/* Function performs the operations at initial
+/*
+ * Function performs the operations at initial
  * boot up of the LCD to make the LCD operationalble in 4-bit mode.
- * Inputs: letter = 8 bit word character array to send to LCD*/
+ * Inputs: letter = 8 bit word character array to send to LCD
+ */
 void LCD_init(void){
     // set pins for driving LCD as output and initialize to zero
     P4 -> SEL0 &= ~(0xFE);
