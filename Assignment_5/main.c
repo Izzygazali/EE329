@@ -1,4 +1,10 @@
 #include "msp.h"
+#define CCR0_COUNT 30250
+#define CCR1_COUNT 968
+
+//for 25% duty cycle CCRO_COUNT 242 and CCR1_COUNT 968
+//lowest pulse achieved at 84
+//30250 CCR0_COUNT for 20ms pulse at 1.5MHz iterate through ISR 500 to get 10s pulse
 
 int main(void) {
     WDT_A->CTL = WDT_A_CTL_PW |             // Stop WDT
@@ -13,11 +19,16 @@ int main(void) {
     //clear control register 0
     CS ->CTL0 = 0;
     //set DCO freq to 24 MHz
-    CS ->CTL0 |= CS_CTL0_DCORSEL_4;
+    CS ->CTL0 |= CS_CTL0_DCORSEL_0;
     //Set DCO as the source for SMCLK
     CS ->CTL1 |= CS_CTL1_SELS__DCOCLK;
     //disable writing to clock systems
     CS ->KEY = 0;
+
+    //Output bit for ISR timing
+    P6 -> SEL0 &= ~BIT0;
+    P6 -> SEL1 &= ~BIT0;
+    P6 -> DIR |= BIT0;
 
     //Output SMCLK frequency for verification
     P4 -> SEL0 |= BIT4;
@@ -28,16 +39,20 @@ int main(void) {
     // TACCR0 interrupt enabled
     TIMER_A0->CCTL[0] = TIMER_A_CCTLN_CCIE;
     TIMER_A0->CCTL[0] &= ~TIMER_A_CCTLN_CCIFG;
-    TIMER_A0->CCTL[1] = TIMER_A_CCTLN_CCIE;
-    TIMER_A0->CCTL[1] &= ~TIMER_A_CCTLN_CCIFG;
+    //TIMER_A0->CCTL[1] = TIMER_A_CCTLN_CCIE;
+    //TIMER_A0->CCTL[1] &= ~TIMER_A_CCTLN_CCIFG;
 
     //Time on, 25% duty cycle
-    TIMER_A0->CCR[0] = 242;
+    TIMER_A0->CCR[0] = CCR0_COUNT;
     //Period 25kHz clock
-    TIMER_A0->CCR[1] = 968;
+    //TIMER_A0->CCR[1] = CCR1_COUNT;
 
-    // SMCLK, continuous mode
-    TIMER_A0->CTL = TIMER_A_CTL_SSEL__SMCLK | TIMER_A_CTL_MC__CONTINUOUS;
+    // SMCLK, continuous mode for 50% and 25% duty cycles
+    //TIMER_A0->CTL = TIMER_A_CTL_SSEL__SMCLK | TIMER_A_CTL_MC__CONTINUOUS;
+
+    // SMCLK, up mode for 20s period pulse
+    TIMER_A0->CTL = TIMER_A_CTL_SSEL__SMCLK | TIMER_A_CTL_MC__UP;
+
 
     // Enable sleep on exit from ISR
     SCB->SCR |= SCB_SCR_SLEEPONEXIT_Msk;
@@ -45,11 +60,44 @@ int main(void) {
     // Enable interrupts
     __enable_irq();
     NVIC->ISER[0] = 1 << ((TA0_0_IRQn) & 31);
-    NVIC->ISER[0] = 1 << ((TA0_N_IRQn) & 31);
+    //NVIC->ISER[0] = 1 << ((TA0_N_IRQn) & 31);
 
     while (1);
 }
 
+//Generating 10s pulse
+void TA0_0_IRQHandler(void)
+{
+    static uint16_t countISR = 0;
+    if (TIMER_A0->CCTL[0] & TIMER_A_CCTLN_CCIFG){
+        countISR += 1;
+        if (countISR == 500){
+            P1->OUT ^= BIT0;
+            countISR = 0;
+        }
+        TIMER_A0->CCTL[0] &= ~TIMER_A_CCTLN_CCIFG;
+    }
+}
+
+
+
+/*
+//ISR timing and 50% duty cycle
+void TA0_0_IRQHandler(void)
+{
+    P6 -> OUT |= BIT0;
+    if (TIMER_A0->CCTL[0] & TIMER_A_CCTLN_CCIFG)
+    {
+        P1->OUT ^= BIT0;
+        TIMER_A0->CCR[0] += CCR0_COUNT;              // Add Offset to TACCR0
+        TIMER_A0->CCTL[0] &= ~TIMER_A_CCTLN_CCIFG;
+    }
+    P6 -> OUT &= ~BIT0;
+}
+*/
+
+
+/* for 25% duty cycle
 // Timer A0 interrupt service routine
 void TA0_0_IRQHandler(void)
 {
@@ -72,4 +120,5 @@ void TA0_N_IRQHandler(void)
     }
 }
 
+*/
 
