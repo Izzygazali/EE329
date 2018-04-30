@@ -11,7 +11,7 @@
 #define     CLR_KEY     42
 
 //Correct Password: set to 1234
-static const uint8_t CORRECT_KEY[] = {49,50,51,52};
+static const uint8_t CORRECT_KEY[] = {49,51,51,55};
 
 //Global variable, digit from keypad
 extern int digit;
