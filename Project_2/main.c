@@ -6,15 +6,8 @@
 #include "keypad.h"
 #include "DAC.h"
 
-
-//Define States of the FSM
-#define     SQUARE          0
-#define     SAWTOOTH         1
-#define     SINE            2
-#define     NO_KEY_PRESS    0xFF
-
 //Global Variables
-int button_press;
+uint8_t button_press;
 uint8_t freq_flag;
 uint8_t state_flag;
 
@@ -58,24 +51,44 @@ struct control_FSM check_NS(uint8_t current_state)
 
 void square_logic(void)
 {
+      uint16_t period_count;
       state_flag = SQUARE;
       TIMER_A0->CTL |= TIMER_A_CTL_MC__STOP;
-      period = 60000/freq_flag;
-      TIMER_A0->CCR[0] = period;
-      TIMER_A0->CCR[1] = period*duty_cycle()/100;
+      period_count = 60000/freq_flag;
+      TIMER_A0->CCR[0] = period_count;
+      TIMER_A0->CCR[1] = period_count*duty_cycle()/100;
       TIMER_A0->CTL |= TIMER_A_CTL_MC__UP;
       return;
 }
 
+void sawtooth_logic(void)
+{
+    state_flag = SAWTOOTH;
+    TIMER_A0->CTL |= TIMER_A_CTL_MC__STOP;
+    TIMER_A0->CCR[0] = 74;
+    TIMER_A0->CTL |= TIMER_A_CTL_MC__UP;
+    return;
+}
+void sine_logic(void)
+{
+    state_flag = SINE;
+    TIMER_A0->CTL |= TIMER_A_CTL_MC__STOP;
+    TIMER_A0->CCR[0] = 74;
+    TIMER_A0->CTL |= TIMER_A_CTL_MC__UP;
+    return;
+}
+
+
 void FUNCTION_GENERATOR_FSM()
 {
-
     //Variable definitions.
-    static uint8_t PS  = SQUARE;
     struct control_FSM control;
+    static uint8_t PS  = SQUARE;
     uint8_t NS;
-    uint16_t period;
     uint8_t repeat = 1;
+
+    if(button_press >= 49 && button_press <= 53)
+        freq_flag = button_press - 48;
 
     while(repeat)
     {
@@ -87,36 +100,17 @@ void FUNCTION_GENERATOR_FSM()
                 control = check_NS(SQUARE);
                 break;
             case SAWTOOTH:
-                P2 -> OUT |= BIT1;
-                P2 -> OUT &= ~(BIT0 |BIT2);
-
-                state_flag = SAWTOOTH;
-
+                sawtooth_logic();
                 control = check_NS(SAWTOOTH);
-                TIMER_A0->CTL |= TIMER_A_CTL_MC__STOP;
-                TIMER_A0->CCR[0] = 74;
-                TIMER_A0->CTL |= TIMER_A_CTL_MC__UP;
                 break;
             case SINE:
-                P2 -> OUT |= BIT2;
-                P2 -> OUT &= ~(BIT0 |BIT1);
-
-                state_flag = SINE;
-
+                sine_logic();
                 control = check_NS(SINE);
-
-
-                TIMER_A0->CTL |= TIMER_A_CTL_MC__STOP;
-                TIMER_A0->CCR[0] = 74;
-                TIMER_A0->CTL |= TIMER_A_CTL_MC__UP;
                 break;
             default:
                 NS = SQUARE;
                 repeat = 0;
                 break;
-        }
-        if(button_press >= 49 && button_press <= 53){
-            freq_flag = button_press - 48;
         }
         NS = control.NS;
         repeat = control.FLG_repeat;
@@ -139,16 +133,9 @@ void main(void)
 
     freq_flag = FREQ_100Hz;
     state_flag = SQUARE;
-
-    P2 -> DIR |= (BIT0 | BIT1 | BIT2);
-
-    //Enable Interrupts
+    //Enable interrupts globally
    __enable_irq();
-
-    while(1){
-
-    }
-
+    while(1);
 }
 
 
@@ -158,8 +145,6 @@ void PORT5_IRQHandler(void)
 {
     //If an interrupt is detected from the specified ports, get the digit
     //pressed and call the finite state machine.
-    //digit is defined as a global variable to enable sharing between
-    //multiple files.
     if(P5 ->IFG & (ROW1 + ROW2 + ROW3 + ROW4))
     {
         button_press = GET_CHAR_KEYPAD();
@@ -170,10 +155,10 @@ void PORT5_IRQHandler(void)
 
 void TA0_0_IRQHandler(void)
 {
-    P1->OUT |= BIT0;
     //Variable for the "sample" we are currently on
     static int16_t step = 0;
-    static int16_t max_step = 199;
+    //Variable for the sample number we will count up to
+    static int16_t max_step;
     //Variable for the amplitude of that sample
     static uint16_t level = 0;
     //flag to keep track of pos/neg half cycle
@@ -181,6 +166,8 @@ void TA0_0_IRQHandler(void)
 
     if (TIMER_A0->CCTL[0] & TIMER_A_CCTLN_CCIFG)
     {
+        //Select the correct Level function for the waveform
+        //currently being generated
         switch (state_flag)
         {
             case SINE:
@@ -200,7 +187,8 @@ void TA0_0_IRQHandler(void)
         }
         //write this amplitude to the DAC
         WRITE_DAC(level);
-        //check if we are at the top of the triangle wave
+        //Change the frequency of the wave by varying the
+        //steps per interrupt from Timer_A
         switch (freq_flag)
         {
             case FREQ_100Hz:
@@ -219,24 +207,27 @@ void TA0_0_IRQHandler(void)
                 step+=5;
                 break;
         }
+        //At the maximum step count reset the step count
+        //and flip the pos_neg half-cycle flag for the Sine wave.
         if (step >= max_step){
-            //if we are at the top of the wave count down
             step = 0;
             pos_neg_flag ^= 0x01;
         }
     }
-
-    P1->OUT &= ~BIT0;
-
+    //reset interrupt flag for TIMER_A0
     TIMER_A0->CCTL[0] &= ~TIMER_A_CCTLN_CCIFG;
 }
 
 void TA0_N_IRQHandler(void)
 {
+    //Only care about interrupt 1 from Timer_A
     if (TIMER_A0->CCTL[1] & TIMER_A_CCTLN_CCIFG)
     {
+      //Only do something if we are currently generating the square wave
       if (state_flag == SQUARE)
+          //set the output low for part of the square wave
           WRITE_DAC(0);
     }
+    //reset interrupt flag for TIMER_A1
     TIMER_A0->CCTL[1] &= ~TIMER_A_CCTLN_CCIFG;
 }
