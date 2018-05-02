@@ -78,7 +78,7 @@ void INIT_TIMER()
        TIMER_A0->CCR[0] = CCR0_COUNT;
        TIMER_A0->CTL = TIMER_A_CTL_SSEL__SMCLK | TIMER_A_CTL_MC__UP | TIMER_A_CTL_ID__4;
        //Enable interrupts on Timer A for CCR0
-       NVIC->ISER[0] = 1 << ((TA0_N_IRQn) & 31);
+       //NVIC->ISER[0] = 1 << ((TA0_N_IRQn) & 31);
        NVIC->ISER[0] = 1 << ((TA0_0_IRQn) & 31);
        return;
 }

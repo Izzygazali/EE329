@@ -14,8 +14,8 @@
 #define GAIN BIT5
 //define CCR count which gives correct "sampling rate" for
 //20 ms period triangle wave
-#define CCR0_COUNT 150
-#define CCR1_COUNT 75
+#define CCR0_COUNT 74
+#define CCR1_COUNT 30
 
 /*Define functions implemented in DAC.c*/
 void SPI_INIT(void);
