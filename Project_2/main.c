@@ -3,17 +3,24 @@
  * Description:
  */
 
-#include "msp.h"
+#include "keypad.h"
 
 
 //Define States of the FSM
 #define     SQUARE          0
-#define     SAWTOOH         1
+#define     SAWTOOTH         1
 #define     SINE            2
 #define     NO_KEY_PRESS    0xFF
 
 //Global Variables
-int button_press, freq_flag, state_flag;
+int button_press;
+uint8_t freq_flag = 1;
+uint8_t state_flag = 0;
+
+struct control_FSM {
+    uint8_t NS;
+    uint8_t FLG_repeat;
+};
 
 
 uint8_t check_duty(){
@@ -37,42 +44,54 @@ uint8_t check_duty(){
     return duty;
 }
 
-uint8_t check_NS(uint8_t current_state)
+struct control_FSM check_NS(uint8_t current_state)
 {
-    if(button_press == '7'){
+    uint8_t NS, repeat;
+    if(button_press == '7' && current_state != SQUARE){
         NS = SQUARE;
+        repeat = 1;
     }
 
-    else if(button_press == '8'){
+    else if(button_press == '8' && current_state != SAWTOOTH){
         NS = SAWTOOTH;
+        repeat = 1;
     }
 
-    else  if(button_press == '9'){
+    else  if(button_press == '9' && current_state != SINE){
         NS = SINE;
+        repeat = 1;
     }
     else{
-        NS = current_state
+        NS = current_state;
+        repeat = 0;
     }
-    return NS;
+
+    struct control_FSM ret = {NS, repeat};
+    return ret;
 }
 
 
-void LOCK_FSM()
+void FUNCTION_GENERATOR_FSM()
 {
 
     //Variable definitions.
     static uint8_t PS  = SQUARE;
     uint8_t NS;
+    uint8_t repeat = 1;
     uint16_t period;
+    struct control_FSM control;
 
-    while(1)
+    while(repeat == 1)
     {
+        repeat = 0;
         switch(PS)
         {
             case SQUARE:
                 state_flag = SQUARE;
+                P2 -> OUT |= BIT0;
+                P2 -> OUT &= ~(BIT1 |BIT2);
 
-                NS = check_NS(SQUARE);
+                control = check_NS(SQUARE);
 
                 if(button_press >= 49 && button_press <= 53){
                     freq_flag = button_press - 48;
@@ -85,9 +104,12 @@ void LOCK_FSM()
 
                 break;
             case SAWTOOTH:
+                P2 -> OUT |= BIT1;
+                P2 -> OUT &= ~(BIT0 |BIT2);
+
                 state_flag = SAWTOOTH;
 
-                NS = check_NS(SAWTOOTH);
+                control = check_NS(SAWTOOTH);
 
                 if(button_press >= 49 && button_press <= 53){
                     freq_flag = button_press - 48;
@@ -95,9 +117,12 @@ void LOCK_FSM()
 
                 break;
             case SINE:
+                P2 -> OUT |= BIT2;
+                P2 -> OUT &= ~(BIT0 |BIT1);
+
                 state_flag = SINE;
 
-                NS = check_NS(SINE);
+                control = check_NS(SINE);
 
                 if(button_press >= 49 && button_press <= 53){
                     freq_flag = button_press - 48;
@@ -105,8 +130,12 @@ void LOCK_FSM()
                 break;
             default:
                 NS = SQUARE;
+                repeat = 0;
                 break;
         }
+
+        NS = control.NS;
+        repeat = control.FLG_repeat;
         PS = NS;
     }
     return;
@@ -122,10 +151,15 @@ void main(void)
     INIT_KEYPAD();
     button_press = NO_KEY_PRESS;
 
-    //Enable Interrupts
-    __enable_irq();
+    P2 -> DIR |= (BIT0 | BIT1 | BIT2);
 
-    while(1);
+    //Enable Interrupts
+ //   __enable_irq();
+
+    while(1){
+        button_press = GET_CHAR_KEYPAD();
+               FUNCTION_GENERATOR_FSM();
+    }
 
 
 }
