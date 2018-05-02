@@ -12,208 +12,46 @@
 #include "delay.h"
 #include "DAC.h"
 
-static const uint16_t samples[]={
+#define FREQ_100Hz 1
+#define FREQ_200Hz 2
+#define FREQ_300Hz 3
+#define FREQ_400Hz 4
+#define FREQ_500Hz 5
+#define WAVE_SQR   0
+#define WAVE_SAW   1
+#define WAVE_SIN   2
+uint8_t freq_flag;
+uint8_t state_flag;
 
-                                 2062,
-                                 2078,
-                                 2093,
-                                 2109,
-                                 2124,
-                                 2140,
-                                 2156,
-                                 2171,
-                                 2187,
-                                 2202,
-                                 2218,
-                                 2233,
-                                 2249,
-                                 2264,
-                                 2280,
-                                 2295,
-                                 2311,
-                                 2326,
-                                 2342,
-                                 2357,
-                                 2372,
-                                 2388,
-                                 2403,
-                                 2419,
-                                 2434,
-                                 2449,
-                                 2464,
-                                 2480,
-                                 2495,
-                                 2510,
-                                 2525,
-                                 2540,
-                                 2556,
-                                 2571,
-                                 2586,
-                                 2601,
-                                 2616,
-                                 2631,
-                                 2646,
-                                 2660,
-                                 2675,
-                                 2690,
-                                 2705,
-                                 2720,
-                                 2734,
-                                 2749,
-                                 2764,
-                                 2778,
-                                 2793,
-                                 2807,
-                                 2822,
-                                 2836,
-                                 2851,
-                                 2865,
-                                 2879,
-                                 2893,
-                                 2907,
-                                 2922,
-                                 2936,
-                                 2950,
-                                 2964,
-                                 2978,
-                                 2991,
-                                 3005,
-                                 3019,
-                                 3033,
-                                 3046,
-                                 3060,
-                                 3073,
-                                 3087,
-                                 3100,
-                                 3114,
-                                 3127,
-                                 3140,
-                                 3153,
-                                 3166,
-                                 3179,
-                                 3192,
-                                 3205,
-                                 3218,
-                                 3231,
-                                 3243,
-                                 3256,
-                                 3269,
-                                 3281,
-                                 3293,
-                                 3306,
-                                 3318,
-                                 3330,
-                                 3342,
-                                 3354,
-                                 3366,
-                                 3378,
-                                 3390,
-                                 3402,
-                                 3413,
-                                 3425,
-                                 3436,
-                                 3448,
-                                 3459,
-                                 3470,
-                                 3481,
-                                 3493,
-                                 3504,
-                                 3514,
-                                 3525,
-                                 3536,
-                                 3547,
-                                 3557,
-                                 3568,
-                                 3578,
-                                 3588,
-                                 3599,
-                                 3609,
-                                 3619,
-                                 3629,
-                                 3639,
-                                 3648,
-                                 3658,
-                                 3668,
-                                 3677,
-                                 3686,
-                                 3696,
-                                 3705,
-                                 3714,
-                                 3723,
-                                 3732,
-                                 3741,
-                                 3749,
-                                 3758,
-                                 3766,
-                                 3775,
-                                 3783,
-                                 3791,
-                                 3799,
-                                 3807,
-                                 3815,
-                                 3823,
-                                 3831,
-                                 3838,
-                                 3846,
-                                 3853,
-                                 3861,
-                                 3868,
-                                 3875,
-                                 3882,
-                                 3889,
-                                 3895,
-                                 3902,
-                                 3909,
-                                 3915,
-                                 3921,
-                                 3927,
-                                 3934,
-                                 3940,
-                                 3945,
-                                 3951,
-                                 3957,
-                                 3962,
-                                 3968,
-                                 3973,
-                                 3978,
-                                 3983,
-                                 3988,
-                                 3993,
-                                 3998,
-                                 4003,
-                                 4007,
-                                 4012,
-                                 4016,
-                                 4020,
-                                 4024,
-                                 4028,
-                                 4032,
-                                 4036,
-                                 4039,
-                                 4043,
-                                 4046,
-                                 4050,
-                                 4053,
-                                 4056,
-                                 4059,
-                                 4061,
-                                 4064,
-                                 4067,
-                                 4069,
-                                 4072,
-                                 4074,
-                                 4076,
-                                 4078,
-                                 4080,
-                                 4081,
-                                 4083,
-                                 4085,
-                                 4086,
-                                 4087,
-                                 4088,
-                                 4089,
-                                 4090,
-                                 4091
+
+static const uint16_t samples[]={
+32, 64, 96, 128, 160, 192, 224, 256, 288, 320,
+351, 383, 415, 446, 477, 509, 540, 571, 601,
+632, 663, 693, 723, 753, 783, 812, 842, 871,
+900, 929, 957, 986, 1014, 1042, 1069, 1096,
+1123, 1150, 1177, 1203, 1229, 1254, 1279,
+1304, 1329, 1353, 1377, 1401, 1424, 1447,
+1470, 1492, 1514, 1535, 1556, 1577, 1597,
+1617, 1636, 1656, 1674, 1693, 1710, 1728,
+1745, 1761, 1778, 1793, 1809, 1823, 1838,
+1852, 1865, 1878, 1891, 1903, 1914, 1925,
+1936, 1946, 1956, 1965, 1974, 1982, 1990,
+1997, 2004, 2010, 2016, 2021, 2026, 2030,
+2034, 2037, 2040, 2042, 2044, 2045, 2046,
+2047, 2046, 2045, 2044, 2042, 2040, 2037,
+2034, 2030, 2026, 2021, 2016, 2010, 2004,
+1997, 1990, 1982, 1974, 1965, 1956, 1946,
+1936, 1925, 1914, 1903, 1891, 1878, 1865,
+1852, 1838, 1823, 1809, 1793, 1778, 1761,
+1745, 1728, 1710, 1693, 1674, 1656, 1636,
+1617, 1597, 1577, 1556, 1535, 1514, 1492,
+1470, 1447, 1424, 1401, 1377, 1353, 1329,
+1304, 1279, 1254, 1229, 1203, 1177, 1150,
+1123, 1096, 1069, 1042, 1014, 986, 957, 929,
+900, 871, 842, 812, 783, 753, 723, 693, 663,
+632, 601, 571, 540, 509, 477, 446, 415, 383,
+351, 320, 288, 256, 224, 192, 160, 128, 96,
+64, 32, 0
 };
 
 
@@ -229,6 +67,9 @@ int main(void)
     INIT_TIMER();
     //Enable interrupts globally
     __enable_irq();
+    freq_flag = FREQ_100Hz;
+    state_flag = WAVE_SAW;
+    P1->DIR |= BIT0;
     //Wait for interrupts
     while(1);
 }
@@ -242,52 +83,70 @@ void TA0_0_IRQHandler(void)
 {
     //Variable for the "sample" we are currently on
     static int16_t step = 0;
+    static int16_t max_step = 199;
     //Variable for the amplitude of that sample
     static uint16_t level = 0;
-    //flag to keep track of if we are counting up or down
-    static uint8_t up_down_flag = 0;
-    static uint8_t pos_neg_flag = 0x01;
-    static uint8_t i = 0;
+    //flag to keep track of pos/neg half cycle
+    static uint8_t pos_neg_flag = 0x00;
 
     if (TIMER_A0->CCTL[0] & TIMER_A_CCTLN_CCIFG)
     {
-         //set amplitude of sample to 8 times the sample number
-         if (pos_neg_flag == 0){
-            level = 4095-samples[step];
-           }else{
-            level = samples[step];
+        switch (state_flag)
+        {
+            case WAVE_SIN:
+                if (pos_neg_flag == 0x01)
+                    level = 2047-samples[step];
+                else
+                    level = 2047+samples[step];
+                max_step = 199;
+                break;
+            case WAVE_SAW:
+                level = (int)(step*10.25);
+                max_step = 399;
+                break;
+            case WAVE_SQR:
+                level = 4095;
+                break;
         }
         //write this amplitude to the DAC
-        if (step <= 199)
-            WRITE_DAC(level);
-            //check if we are at the top of the triangle wave
-            if (step >= 198){
-                //if we are at the top of the wave count down
-                up_down_flag = 1;
-                i++;
-            }
-            else if(step <= 1){
-                //if we are at the bottom of the wave count up
-                up_down_flag = 0;
-                i++;
-            }
-            //check flag and count accordingly
-            if (up_down_flag == 0)
-                //count samples up
+        WRITE_DAC(level);
+        //check if we are at the top of the triangle wave
+        switch (freq_flag)
+        {
+            case FREQ_100Hz:
+                step+=1;
+                break;
+            case FREQ_200Hz:
+                step+=2;
+                break;
+            case FREQ_300Hz:
+                step+=3;
+                break;
+            case FREQ_400Hz:
+                step+=4;
+                break;
+            case FREQ_500Hz:
                 step+=5;
-            else
-                //count samples down
-                step-=5;
-            if (i >=  4){
-                pos_neg_flag ^= 0x01;
-                i=0;
-            }
-
+                break;
+        }
+        if (step >= max_step){
+            //if we are at the top of the wave count down
+            step = 0;
+            pos_neg_flag ^= 0x01;
+        }
     }
-    //reset interrupt flag for Timer
-    TIMER_A0->CCTL[0] &= ~TIMER_A_CCTLN_CCIFG;
 
+
+    TIMER_A0->CCTL[0] &= ~TIMER_A_CCTLN_CCIFG;
 }
 
-
+void TA0_N_IRQHandler(void)
+{
+    if (TIMER_A0->CCTL[1] & TIMER_A_CCTLN_CCIFG)
+    {
+      if (state_flag == WAVE_SQR)
+          WRITE_DAC(0);
+    }
+    TIMER_A0->CCTL[1] &= ~TIMER_A_CCTLN_CCIFG;
+}
 
