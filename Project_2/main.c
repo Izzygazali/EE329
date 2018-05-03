@@ -5,25 +5,38 @@
 
 #include "keypad.h"
 #include "DAC.h"
+#include "LCD.h"
 
 //Global Variables
 uint8_t button_press;
-uint8_t freq_flag;
+uint8_t freq_flag = 1;
 uint8_t state_flag;
 
+
+/*
+ * Struct that defines two variables of type uint8_t, NS and FLG_repeat. The
+ * struct allows the logic functions to return FSM control variables at once.
+ * NS           => next state of the FSM
+ * FLG_repeat   => flag to indicate whether the program needs to iterate
+ *                 through the FSM again. This flag is used to free the MCU for
+ *                 other tasks when no state change is required.
+ *                 1 iterate through FSM
+ *                 0 return to main. (free to perform other tasks)
+ */
 struct control_FSM {
     uint8_t NS;
     uint8_t FLG_repeat;
 };
 
 
+
 uint8_t duty_cycle(){
     static uint8_t duty = 50;
     if(button_press == '0')
         duty = 50;
-    else if(button_press == '#' && duty > 10)
+    else if(button_press == '*' && duty > 10)
         duty -= 10;
-    else if(button_press == '*' && duty < 90)
+    else if(button_press == '#' && duty < 90)
         duty += 10;
     return duty;
 }
@@ -51,19 +64,38 @@ struct control_FSM check_NS(uint8_t current_state)
 
 void square_logic(void)
 {
-      uint16_t period_count;
-      state_flag = SQUARE;
-      TIMER_A0->CTL |= TIMER_A_CTL_MC__STOP;
-      period_count = 60000/freq_flag;
-      TIMER_A0->CCR[0] = period_count;
-      TIMER_A0->CCR[1] = period_count*duty_cycle()/100;
-      TIMER_A0->CTL |= TIMER_A_CTL_MC__UP;
-      return;
+    uint8_t duty = duty_cycle();
+    uint16_t period_count;
+    state_flag = SQUARE;
+
+    LCD_CLR();
+    LCD_HOME();
+    WRITE_STR_LCD("Square Wave ");
+    SET_CUR_POS_LCD(0x40);
+    WRITE_CHAR_LCD(freq_flag + 48);
+    WRITE_STR_LCD("00Hz, ");
+    WRITE_CHAR_LCD((duty/10) + 48);
+    WRITE_STR_LCD("0% Duty");
+
+    TIMER_A0->CTL |= TIMER_A_CTL_MC__STOP;
+    period_count = 60000/freq_flag;
+    TIMER_A0->CCR[0] = period_count;
+    TIMER_A0->CCR[1] = period_count*duty/100;
+    TIMER_A0->CTL |= TIMER_A_CTL_MC__UP;
+    return;
 }
 
 void sawtooth_logic(void)
 {
     state_flag = SAWTOOTH;
+
+    LCD_CLR();
+    LCD_HOME();
+    WRITE_STR_LCD("Sawtooth Wave ");
+    SET_CUR_POS_LCD(0x40);
+    WRITE_CHAR_LCD(freq_flag + 48);
+    WRITE_STR_LCD("00 Hz");
+
     TIMER_A0->CTL |= TIMER_A_CTL_MC__STOP;
     TIMER_A0->CCR[0] = 74;
     TIMER_A0->CTL |= TIMER_A_CTL_MC__UP;
@@ -72,6 +104,14 @@ void sawtooth_logic(void)
 void sine_logic(void)
 {
     state_flag = SINE;
+
+    LCD_CLR();
+    LCD_HOME();
+    WRITE_STR_LCD("Sine Wave ");
+    SET_CUR_POS_LCD(0x40);
+    WRITE_CHAR_LCD(freq_flag + 48);
+    WRITE_STR_LCD("00 Hz");
+
     TIMER_A0->CTL |= TIMER_A_CTL_MC__STOP;
     TIMER_A0->CCR[0] = 74;
     TIMER_A0->CTL |= TIMER_A_CTL_MC__UP;
@@ -127,6 +167,7 @@ void main(void)
     set_DCO(FREQ_24_MHz);
     SPI_INIT();
     INIT_TIMER();
+    LCD_init();
     //Initialize keypad and set digit value to NO_KEY_PRESS
     INIT_KEYPAD();
     button_press = NO_KEY_PRESS;
@@ -182,7 +223,7 @@ void TA0_0_IRQHandler(void)
                 max_step = 799;
                 break;
             case SQUARE:
-                level = 4095;
+                level = 0;
                 break;
         }
         //write this amplitude to the DAC
@@ -226,7 +267,7 @@ void TA0_N_IRQHandler(void)
       //Only do something if we are currently generating the square wave
       if (state_flag == SQUARE)
           //set the output low for part of the square wave
-          WRITE_DAC(0);
+          WRITE_DAC(4095);
     }
     //reset interrupt flag for TIMER_A1
     TIMER_A0->CCTL[1] &= ~TIMER_A_CCTLN_CCIFG;
