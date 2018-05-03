@@ -1,7 +1,6 @@
 /* Engineer(s): Ezzeddeen Gazali and Tyler Starr
  * Create Date: 04/24/2018 */
 #include "msp.h"
-#include "delay.h"
 
 static const uint16_t samples[]={
     16, 32, 48, 64, 80, 96, 112, 128, 144, 160,
@@ -59,18 +58,12 @@ static const uint16_t samples[]={
     112, 96, 80, 64, 48, 32, 16, 0
 };
 
-//define frequencys for DAC.
+//define frequencies for DAC.
 #define FREQ_100Hz 1
 #define FREQ_200Hz 2
 #define FREQ_300Hz 3
 #define FREQ_400Hz 4
 #define FREQ_500Hz 5
-
-//Define States of the FSM
-#define SQUARE       0
-#define SAWTOOTH     1
-#define SINE         2
-#define NO_KEY_PRESS 0xFF
 
 //define bits associated with SPI
 #define CHIPSEL BIT0
@@ -86,7 +79,7 @@ static const uint16_t samples[]={
 #define CCR0_COUNT 60000
 #define CCR1_COUNT 30000
 
-/*Define functions implemented in DAC.c*/
+//prototypes for functions implemented in DAC.c
 void SPI_INIT(void);
 void WRITE_DAC(uint16_t data);
 void INIT_TIMER();

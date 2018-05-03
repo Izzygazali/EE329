@@ -3,13 +3,7 @@
  * Description: This library file implements useful functions for setting up
  *              and utilizing the COM-086553. The functions are documented
  *              prior to their source code.
- * LCD Pin Assignments:     P4.1 -> RS
- *                          P4.2 -> R/W
- *                          P4.3 -> EN
- *                          P4.4 -> DB4
- *                          P4.5 -> DB5
- *                          P4.6 -> DB6
- *                          P4.7 -> DB7
+ *
  * Keypad Pin Assignments:  P5.4 -> ROW1
  *                          P5.5 -> ROW2
  *                          P5.6 -> ROW3

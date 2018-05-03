@@ -23,7 +23,7 @@
 #define Clear_Lower_Byte 0xF0
 #define Clear_LCD_Command 0x01
 #define Return_Home_Command 0x02
-#define Second_Line 0xC0
+#define Second_Line 0x40
 
 //define functions implemented in LCD.c
 void NYBBLE();
