@@ -260,7 +260,12 @@ void main(void)
     //Enable interrupts globally
    __enable_irq();
 
-    while(1);
+   //Put the MCU to sleep to save power between interrupts
+   SCB->SCR |= SCB_SCR_SLEEPONEXIT_Msk; // Do not wake up on exit from Int
+   SCB->SCR |= (SCB_SCR_SLEEPDEEP_Msk);
+   //Ensure that SLEEPDEEP occurs immediately
+   __DSB();
+   __sleep();
 }
 
 
@@ -268,6 +273,7 @@ void main(void)
 //ISR handler for port 5 (keypad ISR)
 void PORT5_IRQHandler(void)
 {
+
     //If an interrupt is detected from the specified ports, get the digit
     //pressed and call the finite state machine.
     if(P5 ->IFG & (ROW1 + ROW2 + ROW3 + ROW4))
@@ -343,6 +349,7 @@ void TA0_0_IRQHandler(void)
     }
     //reset interrupt flag
     TIMER_A0->CCTL[0] &= ~TIMER_A_CCTLN_CCIFG;
+
 }
 
 //TimerA0 ISR handler for interrupts generated at CCR1
