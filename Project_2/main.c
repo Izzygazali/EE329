@@ -292,12 +292,12 @@ void main(void)
     //Enable interrupts globally
     __enable_irq();
 
-   //Put the MCU to sleep to save power between interrupts
-   SCB->SCR |= SCB_SCR_SLEEPONEXIT_Msk; // Do not wake up on exit from Int
-   SCB->SCR |= (SCB_SCR_SLEEPDEEP_Msk);
-   //Ensure that SLEEPDEEP occurs immediately
-   __DSB();
-   __sleep();
+    //Put the MCU to sleep to save power between interrupts
+    SCB->SCR |= SCB_SCR_SLEEPONEXIT_Msk; // Do not wake up on exit from Int
+    SCB->SCR |= (SCB_SCR_SLEEPDEEP_Msk);
+    //Ensure that SLEEPDEEP occurs immediately
+    __DSB();
+    __sleep();
 
 }
 
@@ -348,7 +348,7 @@ void TA0_0_IRQHandler(void)
                 max_step = 399;
                 break;
             case SQUARE:
-                level = 0;
+                level = 4095;
                 break;
             case TRIANGLE:
                 if (pos_neg_flag == 0x01)
@@ -400,7 +400,7 @@ void TA0_N_IRQHandler(void)
       //Only do something if we are currently generating the square wave
       if (state_flag == SQUARE)
           //set the output high
-          WRITE_DAC(4095);
+          WRITE_DAC(0);
     }
     //reset interrupt flag
     TIMER_A0->CCTL[1] &= ~TIMER_A_CCTLN_CCIFG;
