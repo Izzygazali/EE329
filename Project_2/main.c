@@ -16,6 +16,7 @@
 #define SQUARE       0
 #define SAWTOOTH     1
 #define SINE         2
+#define TRIANGLE     3
 
 //Global Variables, initially set to 100 Hz square wave
 uint8_t button_press = NO_KEY_PRESS;
@@ -76,7 +77,9 @@ struct control_FSM check_NS(uint8_t current_state)
     //Next state is set based on which key is pressed on the keypad.
     //Next state is set to the current state if none of the keys designated
     //for wave type is pressed.
-    if (button_press == '7')
+    if (button_press == '6')
+        NS = TRIANGLE;
+    else if (button_press == '7')
         NS = SQUARE;
     else if(button_press == '8')
         NS = SAWTOOTH;
@@ -145,6 +148,32 @@ void sawtooth_logic(void)
     LCD_CLR();
     LCD_HOME();
     WRITE_STR_LCD("Sawtooth Wave ");
+    SET_CUR_POS_LCD(Second_Line);
+    WRITE_CHAR_LCD(freq_flag + 48);
+    WRITE_STR_LCD("00 Hz");
+
+    //Set CCR0 count for the correct sampling rate
+    TIMER_A0->CTL |= TIMER_A_CTL_MC__STOP;      //stop timer
+    TIMER_A0->CCR[0] = 74;                      //set CCR0 count
+    TIMER_A0->CTL |= TIMER_A_CTL_MC__UP;        //start timer
+    return;
+}
+
+/*
+ * Function that handles the logic for the triangle wave state.
+ * The sampling rate and output to LCD are handled in this function.
+ * INPUT:   NONE
+ * RETURN:  NONE
+ */
+void triangle_logic(void)
+{
+    //Set state flag to sawtooth wave state
+    state_flag = TRIANGLE;
+
+    //Display wave type and frequency on LCD
+    LCD_CLR();
+    LCD_HOME();
+    WRITE_STR_LCD("Triangle Wave ");
     SET_CUR_POS_LCD(Second_Line);
     WRITE_CHAR_LCD(freq_flag + 48);
     WRITE_STR_LCD("00 Hz");
@@ -230,6 +259,9 @@ void FUNCTION_GENERATOR_FSM(void)
                 sine_logic();
                 control = check_NS(SINE);
                 break;
+            case TRIANGLE:
+                triangle_logic();
+                control = check_NS(TRIANGLE);
             default:
                 NS = SQUARE;
                 repeat = 0;
@@ -258,7 +290,7 @@ void main(void)
     INIT_KEYPAD();
 
     //Enable interrupts globally
-   __enable_irq();
+    __enable_irq();
 
    //Put the MCU to sleep to save power between interrupts
    SCB->SCR |= SCB_SCR_SLEEPONEXIT_Msk; // Do not wake up on exit from Int
@@ -266,6 +298,7 @@ void main(void)
    //Ensure that SLEEPDEEP occurs immediately
    __DSB();
    __sleep();
+
 }
 
 
@@ -312,10 +345,17 @@ void TA0_0_IRQHandler(void)
                 break;
             case SAWTOOTH:
                 level = (int)(step*10.25);
-                max_step = 799;
+                max_step = 399;
                 break;
             case SQUARE:
                 level = 0;
+                break;
+            case TRIANGLE:
+                if (pos_neg_flag == 0x01)
+                    level = (int)(step*20.5);
+                else
+                    level = 4095-(int)(step*20.5);
+                max_step = 199;
                 break;
         }
         //write this amplitude to the DAC
