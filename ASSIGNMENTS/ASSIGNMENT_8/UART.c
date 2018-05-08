@@ -1,14 +1,14 @@
 #include "UART.h"
 
 static uint8_t value_flag = 0;
-static uint32_t uart_value = 0;
+static uint16_t uart_value = 0;
 
 uint8_t get_value_flag(void)
 {
     return value_flag;
 }
 
-uint8_t get_uart_value(void)
+uint16_t get_uart_value(void)
 {
     return uart_value;
 }

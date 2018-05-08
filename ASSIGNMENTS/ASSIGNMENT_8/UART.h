@@ -8,7 +8,7 @@
 /*Define functions implemented in DAC.c*/
 void init_UART(void);
 uint8_t get_value_flag(void);
-uint8_t get_uart_value(void);
+uint16_t get_uart_value(void);
 void reset_value_flag(void);
 
 
