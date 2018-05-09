@@ -1,11 +1,11 @@
 #include "msp.h"
+#include "DAC.h"
 
 #define PEAK BIT0
 #define VALLEY BIT1
 
 uint16_t high_value;
 uint16_t low_value;
-uint16_t sample;
 
 void init_ADC(void)
 {
@@ -28,17 +28,19 @@ void init_ADC(void)
 
 void get_DC_offset(void)
 {
+    uint16_t dc_offset;
     P5->DIR |= PEAK;
     P5->OUT &= ~PEAK;
     P5->DIR &= ~PEAK;
-
     P5->DIR |= VALLEY;
     P5->OUT |= VALLEY;
     P5->DIR &= ~VALLEY;
-
-
-
-
+    __delay_cycles(1000);
+    ADC14->CTL0 |= ADC14_CTL0_ENC | ADC14_CTL0_SC;
+    __delay_cycles(1000);
+    dc_offset = (high_value+low_value) >> 1;
+    WRITE_DAC(dc_offset);
+    return;
 }
 
 
@@ -47,22 +49,14 @@ void main(void){
 
     WDTCTL = WDTPW | WDTHOLD;
     init_ADC();
+    SPI_INIT();
     P1->OUT &= ~BIT0;                      // Clear LED to start
     P1->DIR |= BIT0;
-    while(1){
-        //volatile unsigned int i;
-        //for(i=20000; i>0; i--);
-        ADC14->CTL0 &= ~(ADC14_CTL0_ENC | ADC14_CTL0_SC);
-        P5->DIR |= VALLEY;
-        P5->OUT |= VALLEY;
-         P5->DIR &= ~VALLEY;
-        ADC14->CTL0 |= ADC14_CTL0_ENC | ADC14_CTL0_SC;
-
-        uint16_t sample1 = low_value;
-        __no_operation();
-        __delay_cycles(100000);
-
-    }
+  //  while(1){
+        get_DC_offset();
+        //__delay_cycles(100000);
+while(1);
+    //}
 }
 
 void ADC14_IRQHandler(void) {
