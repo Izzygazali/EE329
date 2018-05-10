@@ -1,7 +1,6 @@
 /* Engineer(s): Ezzeddeen Gazali and Tyler Starr
  * Create Date: 04/24/2018 */
 #include "msp.h"
-#include "delay.h"
 
 //define bits associated with inputs used for SPI
 #define CHIPSEL BIT0
