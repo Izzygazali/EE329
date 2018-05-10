@@ -50,13 +50,11 @@ void main(void){
     WDTCTL = WDTPW | WDTHOLD;
     init_ADC();
     SPI_INIT();
-    P1->OUT &= ~BIT0;                      // Clear LED to start
+    P1->OUT &= ~BIT0;
     P1->DIR |= BIT0;
-  //  while(1){
-        get_DC_offset();
-        //__delay_cycles(100000);
-while(1);
-    //}
+    get_DC_offset();
+    while(1);
+
 }
 
 void ADC14_IRQHandler(void) {
