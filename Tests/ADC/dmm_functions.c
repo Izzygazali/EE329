@@ -15,9 +15,9 @@ float get_low_voltage(void)
     return low_value*0.08;
 }
 
-float get_captured_freq(void)
+uint16_t get_captured_freq(void)
 {
-    return 64000/abs(captureValues[1] - captureValues[0]);
+    return 64000/(captureValues[1] - captureValues[0]);
 }
 
 uint8_t get_freq_flag(void)
@@ -43,7 +43,7 @@ void init_freq_timer(void)
     TIMER_A0->CTL |= TIMER_A_CTL_SSEL__ACLK | TIMER_A_CTL_MC__CONTINUOUS | TIMER_A_CTL_CLR;
     TIMER_A0->CCTL[2] |= TIMER_A_CCTLN_CAP | TIMER_A_CCTLN_CM_1 | TIMER_A_CCTLN_CCIS_0 | TIMER_A_CCTLN_CCIE | TIMER_A_CCTLN_SCS;
     TIMER_A0->CCTL[2] &= ~TIMER_A_CCTLN_CCIFG;
-   // NVIC->ISER[0] = 1 << ((TA0_N_IRQn) & 31);
+    NVIC->ISER[0] = 1 << ((TA0_N_IRQn) & 31);
     __enable_irq();
     return;
 }
@@ -60,6 +60,7 @@ void init_ADC(void)
     ADC14->MCTL[1] |= ADC14_MCTLN_INCH_14;
     ADC14->IER0 |= ADC14_IER0_IE0;
     ADC14->IER0 |= ADC14_IER0_IE1;
+
     return;
 }
 
@@ -72,9 +73,9 @@ void set_DC_offset(void)
     P5->DIR |= VALLEY;
     P5->OUT |= VALLEY;
     P5->DIR &= ~VALLEY;
-    __delay_cycles(1000);
+    //__delay_cycles(2000);
     ADC14->CTL0 |= ADC14_CTL0_ENC | ADC14_CTL0_SC;
-    __delay_cycles(1000);
+    //__delay_cycles(2000);
     dc_offset = (high_value+low_value) >> 1;
     WRITE_DAC(dc_offset);
     return;
@@ -91,7 +92,7 @@ void ADC14_IRQHandler(void)
 void TA0_N_IRQHandler(void)
 {
     static volatile uint16_t captureCount = 0;
-    if ((TIMER_A0->CCTL[2] & TIMER_A_CCTLN_CCIFG) && ~(dmm_flags & FREQ_FLAG))
+    if ((TIMER_A0->CCTL[2] & TIMER_A_CCTLN_CCIFG))
     {
         captureValues[captureCount] = TIMER_A0->CCR[2];
         captureCount++;
@@ -101,5 +102,6 @@ void TA0_N_IRQHandler(void)
             captureCount = 0;
         }
     }
+
     TIMER_A0->CCTL[2] &= ~TIMER_A_CCTLN_CCIFG;
 }

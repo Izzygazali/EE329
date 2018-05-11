@@ -12,7 +12,7 @@ void init_ADC(void);
 void set_DC_offset(void);
 float get_high_voltage(void);
 float get_low_voltage(void);
-float get_captured_freq(void);
+uint16_t get_captured_freq(void);
 uint8_t get_freq_flag(void);
 void reset_freq_flag(void);
 
