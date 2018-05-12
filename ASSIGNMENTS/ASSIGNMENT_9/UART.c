@@ -11,7 +11,7 @@
  */
 void UART_write_string(char inputString[]){
     int i = 0;
-    while(inputString[i] != 0)
+    while(inputString[i] != '\0')
     {
             while(!(EUSCI_A0->IFG & EUSCI_A_IFG_TXIFG));
             EUSCI_A0->TXBUF = inputString[i];

@@ -17,8 +17,10 @@ uint16_t binary_to_bcd(uint16_t binary_number)
 
 void send_voltage_UART(uint16_t voltage_number)
 {
+    UART_write_string(CLEAR_LINE);
+    UART_write_string(CURSOR_HOME);
 
-    char voltage_string[] = {'0','.','0','0','0','V'};
+    char voltage_string[] = {'0','.','0','0','0','V','\0'};
 
     voltage_string[0] = ((voltage_number & 0xF000) >> 12) + 48;
     voltage_string[2] = ((voltage_number & 0x0F00) >> 8) + 48;
@@ -26,8 +28,7 @@ void send_voltage_UART(uint16_t voltage_number)
     voltage_string[4] = (voltage_number & 0x000F) + 48;
     UART_write_string(voltage_string);
 
-    UART_write_string(CLEAR_LINE);
-    UART_write_string(CURSOR_HOME);
+
     return;
 }
 
@@ -45,7 +46,7 @@ void main(void){
     while(1)
     {
         ADC14->CTL0 |= ADC14_CTL0_ENC | ADC14_CTL0_SC;
-       __delay_cycles(2000);
+       __delay_cycles(20000);
        if (get_adc_val_and_flag() & adc_flag)
        {
            converted_voltage = (get_adc_val_and_flag() & ~adc_flag)*adc_conv_factor;
