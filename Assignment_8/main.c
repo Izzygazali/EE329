@@ -6,6 +6,9 @@
 #include "UART.h"
 #include "DAC.h"
 
+#define CLEAR_LINE          "\x1B[2K"
+#define CURSOR_HOME         "\x1B[H"
+
 void main(void){
     //disable watchdog timer
     WDT_A->CTL = WDT_A_CTL_PW | WDT_A_CTL_HOLD;
@@ -29,7 +32,8 @@ void main(void){
             DAC_data(get_DAC_level());                      //write level to DAC
             set_value_flag(0);                              //reset value_flag
             NVIC -> ISER[0] = 1 <<(EUSCIA0_IRQn & 31);      //enable interrupts on UART
-
+            UART_write_string(CLEAR_LINE);
+            UART_write_string(CURSOR_HOME);
             //prompt for input
             UART_write_string("\n\rEnter DAC Level:\n\r");
 

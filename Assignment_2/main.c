@@ -1,7 +1,6 @@
 #include "msp.h"
 #include "delay.h"
 
-
 void main(void)
 {
 
