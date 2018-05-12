@@ -4,6 +4,8 @@
  *              through UART communication
  */
 #include "msp.h"
+#include <stdio.h>
+#include <string.h>
 
 #define CLEAR_LINE          "\x1B[2K"
 #define CURSOR_HOME         "\x1B[H"

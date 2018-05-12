@@ -1,61 +1,63 @@
 #include "msp.h"
 #include "UART.h"
+#include "ADC.h"
 
-#define Ain BIT0
-#define adc_flag_val 0x8000
-
-//Bottom 14 bits are value from ADC
-//Top bit is the flag for completion of conversion
-uint16_t adc_val_and_flag;
-
-
-void init_ADC(void)
+uint16_t binary_to_bcd(uint16_t binary_number)
 {
-    P6->SEL0 |= Ain;
-    P6->SEL1 |= Ain;
-    NVIC->ISER[0] = 1 << ((ADC14_IRQn) & 31);
-    __enable_irq();
-    ADC14->CTL0 = ADC14_CTL0_SHT0_0 | ADC14_CTL0_ON | ADC14_CTL0_SHP | ADC14_CTL0_CONSEQ_1;
-    ADC14->CTL1 = ADC14_CTL1_RES_3;
-    ADC14->MCTL[0] |= ADC14_MCTLN_INCH_15;
-    ADC14->IER0 |= ADC14_IER0_IE0;
+   uint16_t bcd_number = 0;
+   uint8_t  digit = 0;
+   while (binary_number > 0) {
+       bcd_number |= (binary_number % 10) << (digit++ << 2);
+       binary_number /= 10;
+   }
+   return bcd_number;
+}
 
+
+
+void send_voltage_UART(uint16_t voltage_number)
+{
+
+    char voltage_string[] = {'0','.','0','0','0','V'};
+
+    voltage_string[0] = ((voltage_number & 0xF000) >> 12) + 48;
+    voltage_string[2] = ((voltage_number & 0x0F00) >> 8) + 48;
+    voltage_string[3] = ((voltage_number & 0x00F0) >> 4) + 48;
+    voltage_string[4] = (voltage_number & 0x000F) + 48;
+    UART_write_string(voltage_string);
+
+    UART_write_string(CLEAR_LINE);
+    UART_write_string(CURSOR_HOME);
     return;
 }
 
-char* convert_number_to_string(uint16_t input_number)
-{
-    char output_string[] = {0xFF,0xFF,0xFF,0xFF,0xFF};
-    uint8_t temp_place_number;
-
-    temp_place_number = (input_number % 100) >> 4;
-    return (output_string);
-
-}
 
 void main(void){
 
     WDTCTL = WDTPW | WDTHOLD;
     UART_init();
     init_ADC();
-    convert_number_to_string(833);
-  /*  uint16_t capture_adc_val = 0;
+
+
+    uint16_t converted_voltage = 0;
+    uint16_t converted_bcd_voltage = 0;
 
     while(1)
     {
-        if (adc_val_and_flag & adc_flag_val){
-            capture_adc_val = (adc_val_and_flag & ~adc_flag_val);
-
-        }
-    }*/
-}
-
-void ADC14_IRQHandler(void)
-{
-
-    if (ADC14->IFGR0 & ADC14_IFGR0_IFG0){
-        adc_val_and_flag |= (0x3FFF & ADC14->MEM[0]);
-        adc_val_and_flag |= adc_flag_val;
+        ADC14->CTL0 |= ADC14_CTL0_ENC | ADC14_CTL0_SC;
+       __delay_cycles(2000);
+       if (get_adc_val_and_flag() & adc_flag)
+       {
+           converted_voltage = (get_adc_val_and_flag() & ~adc_flag)*adc_conv_factor;
+           if (converted_voltage <= 3300)
+           {
+               converted_bcd_voltage = binary_to_bcd(converted_voltage);
+               send_voltage_UART(converted_bcd_voltage);
+           }
+           reset_adc_flag();
+       }
     }
 }
+
+
 

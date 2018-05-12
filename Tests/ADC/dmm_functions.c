@@ -73,9 +73,9 @@ void set_DC_offset(void)
     P5->DIR |= VALLEY;
     P5->OUT |= VALLEY;
     P5->DIR &= ~VALLEY;
-    //__delay_cycles(2000);
+    __delay_cycles(2000);
     ADC14->CTL0 |= ADC14_CTL0_ENC | ADC14_CTL0_SC;
-    //__delay_cycles(2000);
+    __delay_cycles(2000);
     dc_offset = (high_value+low_value) >> 1;
     WRITE_DAC(dc_offset);
     return;

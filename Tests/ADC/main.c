@@ -23,7 +23,7 @@ void running_avg_freq(uint16_t current_freq)
 void main(void){
 
     WDTCTL = WDTPW | WDTHOLD;
-    while(1);
+    //while(1);
     P1->DIR |= BIT0;
     init_ADC();
     SPI_INIT();
