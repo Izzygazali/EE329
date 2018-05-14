@@ -65,6 +65,8 @@ void INIT_TIMER()
        //Enable writing to clock registers
        CS ->KEY = CS_KEY_VAL;
        //Set Timer CLK to DCOCLK
+       CS ->CTL0 |= CS_CTL0_DCORSEL_2;
+
        CS ->CTL1 |= CS_CTL1_SELS__DCOCLK;
        //Disable writing to clock registers
        CS ->KEY = 0;

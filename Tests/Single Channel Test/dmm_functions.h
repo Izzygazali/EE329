@@ -9,6 +9,7 @@
 void init_ADC(void);
 void init_clock(void);
 
+void init_sample_timer(void);
 
 
 

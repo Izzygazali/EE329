@@ -30,7 +30,7 @@ void main(void){
     init_ADC();
     SPI_INIT();
     init_freq_timer();
-    UART_init();
+   // UART_init();
     __enable_irq();
     float wave_freq = 0;
     float low = 0;
@@ -41,21 +41,24 @@ void main(void){
 
     while(1)
     {
+        NVIC->ICER[0] = 1 << ((TA0_N_IRQn) & 31);
+        //set_DC_offset();
+        NVIC->ISER[0] = 1 << ((TA0_N_IRQn) & 31);
 
-        set_DC_offset();
+        __delay_cycles(30000);
 
-       // if (get_freq_flag()){
-           // __disable_irq();
+
+
+        if (get_freq_flag()){
+            __disable_irq();
+            if (get_captured_freq() < 64000){
             wave_freq =  get_captured_freq();
-            low = get_low_voltage();
-            high = get_high_voltage();
-            sprintf (high_val, "%f", high);
-            UART_write_string(high_val);
+            }
             reset_freq_flag();
-           // __enable_irq();
-        //}
+            __enable_irq();
+        }
 
-        //__delay_cycles(6000000);
+        __delay_cycles(300000);
 
 
     }

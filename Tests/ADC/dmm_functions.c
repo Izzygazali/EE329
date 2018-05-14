@@ -17,7 +17,7 @@ float get_low_voltage(void)
 
 uint16_t get_captured_freq(void)
 {
-    return 64000/(captureValues[1] - captureValues[0]);
+    return (captureValues[1] - captureValues[0]);
 }
 
 uint8_t get_freq_flag(void)
@@ -33,9 +33,13 @@ void reset_freq_flag(void)
 
 void init_freq_timer(void)
 {
+    P4->DIR |= BIT2;
+    P4->SEL0 |= BIT2;
+    P4->SEL1 &= BIT2;
+
     CS->KEY = CS_KEY_VAL;
     CS->CLKEN |= CS_CLKEN_REFOFSEL;
-    CS->CTL1 |= CS_CTL1_SELA__REFOCLK | CS_CTL1_DIVA_1;
+    CS->CTL1 |= CS_CTL1_SELA__REFOCLK | CS_CTL1_DIVA_2;
     CS->KEY = 0;
     P2->SEL0 |= INPUT_FREQ;
     P2->SEL1 &= ~INPUT_FREQ;
@@ -43,7 +47,6 @@ void init_freq_timer(void)
     TIMER_A0->CTL |= TIMER_A_CTL_SSEL__ACLK | TIMER_A_CTL_MC__CONTINUOUS | TIMER_A_CTL_CLR;
     TIMER_A0->CCTL[2] |= TIMER_A_CCTLN_CAP | TIMER_A_CCTLN_CM_1 | TIMER_A_CCTLN_CCIS_0 | TIMER_A_CCTLN_CCIE | TIMER_A_CCTLN_SCS;
     TIMER_A0->CCTL[2] &= ~TIMER_A_CCTLN_CCIFG;
-    NVIC->ISER[0] = 1 << ((TA0_N_IRQn) & 31);
     __enable_irq();
     return;
 }
@@ -73,9 +76,9 @@ void set_DC_offset(void)
     P5->DIR |= VALLEY;
     P5->OUT |= VALLEY;
     P5->DIR &= ~VALLEY;
-   __delay_cycles(3000000);
+   //__delay_cycles(3000);
     ADC14->CTL0 |= ADC14_CTL0_ENC | ADC14_CTL0_SC;
-    __delay_cycles(200);
+   // __delay_cycles(30000);
     dc_offset = (high_value+low_value) >> 1;
     WRITE_DAC(dc_offset);
     return;
@@ -91,7 +94,7 @@ void ADC14_IRQHandler(void)
 
 void TA0_N_IRQHandler(void)
 {
-    static volatile uint16_t captureCount = 0;
+    static volatile uint32_t captureCount = 0;
     if ((TIMER_A0->CCTL[2] & TIMER_A_CCTLN_CCIFG))
     {
         captureValues[captureCount] = TIMER_A0->CCR[2];
