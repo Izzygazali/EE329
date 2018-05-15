@@ -19,9 +19,19 @@ void running_avg_freq(uint16_t current_freq)
     }
     return;
 }
+void main(void){
+    WDTCTL = WDTPW | WDTHOLD;
+    init_AC_ADC();
+    init_sample_timer(1000);
+    P1->DIR |= BIT0;
+    __enable_irq();
+    __delay_cycles(10000);
+    uint16_t test = get_sampled_rms();
 
+    while(1);
+}
 
-
+/*
 void main(void){
 
     WDTCTL = WDTPW | WDTHOLD;
@@ -63,6 +73,6 @@ void main(void){
 
     }
 }
-
+*/
 
 

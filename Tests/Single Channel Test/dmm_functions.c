@@ -43,8 +43,6 @@ void init_sample_timer(void)
     TIMER_A0->CCR[0] = 600;
     TIMER_A0->CTL |= TIMER_A_CTL_SSEL__SMCLK | TIMER_A_CTL_MC__UP;
     NVIC->ISER[0] = 1 << ((TA0_0_IRQn) & 31);
-
-
     return;
 }
 
@@ -53,7 +51,7 @@ void init_sample_timer(void)
 void ADC14_IRQHandler(void)
 {
     if (ADC14->IFGR0 & ADC14_IFGR0_IFG0)
-        if (adc_index < 21){
+        if (adc_index < 100){
             adc_value[adc_index] = ADC14->MEM[0];
             adc_index++;
         }else{

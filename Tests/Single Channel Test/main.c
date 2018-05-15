@@ -6,7 +6,7 @@ void main(void){
     WDTCTL = WDTPW | WDTHOLD;
     P1->DIR |= BIT0;
     init_clock();
-    init_ADC();
+    init_AC_ADC();
     init_sample_timer();
     __enable_irq();
 
