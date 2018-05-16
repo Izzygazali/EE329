@@ -144,7 +144,7 @@ void set_DC_offset(void)
 uint16_t get_captured_freq(void)
 {
     //return the frequency of the input analog wave
-    //NVIC->ICER[0] = 1 << ((TA0_N_IRQn) & 31);
+    NVIC->ICER[0] = 1 << ((TA0_N_IRQn) & 31);
     return 32000/captured_freq;
 }
 
@@ -276,6 +276,7 @@ void ADC14_IRQHandler(void)
 
 void TA0_N_IRQHandler(void)
 {
+    P1->OUT |= BIT0;
     //variable for "counting" frequency of input wave
     static volatile uint32_t captureCount = 0;
     static volatile uint16_t captureValues[2] = {0,0};
@@ -299,6 +300,7 @@ void TA0_N_IRQHandler(void)
         }
     }
     //reset timer flag
+    P1->OUT &= ~BIT0;
     TIMER_A0->CCTL[2] &= ~TIMER_A_CCTLN_CCIFG;
 }
 

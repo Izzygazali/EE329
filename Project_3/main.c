@@ -73,11 +73,12 @@ void DMM_FSM(void)
                 break;
             case get_wave_freq:
                 if(event == wave_freq_set){
-                    //state = sample_wave;
+                    state = sample_wave;
                     break;
                 }
                 //get freq function
                 NVIC->ISER[0] = 1 << ((TA0_N_IRQn) & 31);
+                __delay_cycles(1000000);
                 break;
             case sample_wave:
                 if(event == wave_sampled){
@@ -119,7 +120,7 @@ void main(void){
     SPI_INIT();
     __enable_irq();
     init_clock();
-
+    P1->DIR |= BIT0;
     WRITE_DAC(4095);
 
     init_freq_timer();
