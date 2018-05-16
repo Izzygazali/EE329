@@ -1,7 +1,6 @@
 #include "msp.h"
 #include "dmm_functions.h"
-
-
+uint16_t freq = 0;
 
 //define states
 enum state_type{
@@ -36,6 +35,7 @@ void DMM_STATE_DECODE(void)
             event = DC_offset_set;
             break;
         case dc_offset_flag | wave_freq_flag:
+            freq = get_captured_freq();
             event = wave_freq_set;
             break;
         case dc_offset_flag | wave_freq_flag | sampling_done_flag:
@@ -59,30 +59,36 @@ void DMM_STATE_DECODE(void)
 void DMM_FSM(void)
 {
 
-    enum state_type state;
-    state = get_offset_DC;
-
-    while(1)
-    {
+    static enum state_type state = get_offset_DC;
         switch(state)
         {
             case get_offset_DC:
-                //DC offset function
-                set_DC_offset();
-                reset_dmm_flags();
-                if(event == DC_offset_set)
-
+                if(event == DC_offset_set){
                     state = get_wave_freq;
+                    break;
+                }
+                //DC offset function
+                init_DC_ADC();
+                set_DC_offset();
                 break;
             case get_wave_freq:
+                if(event == wave_freq_set){
+                    //state = sample_wave;
+                    break;
+                }
                 //get freq function
-                if(event == wave_freq_set)
-                    state = sample_wave;
+                NVIC->ISER[0] = 1 << ((TA0_N_IRQn) & 31);
                 break;
             case sample_wave:
-                //sample wave function
-                if(event == wave_sampled)
+                if(event == wave_sampled){
                     state = perform_calculations;
+                    break;
+                }
+                //sample wave function
+                reset_ADC_index();
+                init_AC_ADC();
+                init_sample_timer(freq);
+                while(~(get_dmm_flags() & sampling_done_flag));
                 break;
             case perform_calculations:
                 //calculations function
@@ -104,7 +110,7 @@ void DMM_FSM(void)
                 state = reset_state;
                 break;
         }
-    }
+        return;
 }
 
 
@@ -115,7 +121,8 @@ void main(void){
     init_clock();
 
     WRITE_DAC(4095);
-    init_DC_ADC();
+
+    init_freq_timer();
 
 
     while(1){

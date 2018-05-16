@@ -11,11 +11,14 @@ volatile uint16_t dmm_flags = 0;
 
 //variables for DC Offset
 uint16_t dc_offset;
+uint16_t dc_offset_avg;
 volatile uint16_t high_value;
+uint16_t high_value_avg;
 volatile uint16_t low_value;
+uint16_t low_value_avg;
 
 //variables for frequency determination
-volatile uint16_t captureValues[2];
+volatile uint16_t captured_freq = 0;
 
 //variables for sampling wave
 volatile uint16_t adc_value[200];
@@ -56,19 +59,22 @@ void init_clock(void)
 //-------------------------------------------------------------------------------------------------
 uint16_t get_DC_offset(void)
 {
+    NVIC->ICER[0] = 1 << ((ADC14_IRQn) & 31);
     //return DC offset value in volts
-    return dc_offset*0.8;
+    return dc_offset_avg*0.8;
 }
 uint16_t get_high_voltage(void)
 {
+    NVIC->ICER[0] = 1 << ((ADC14_IRQn) & 31);
     //return DC high value in volts
-    return high_value*0.8;
+    return high_value_avg*0.8;
 }
 
 uint16_t get_low_voltage(void)
 {
+    NVIC->ICER[0] = 1 << ((ADC14_IRQn) & 31);
     //return DC low value in volts
-    return low_value*0.8;
+    return low_value_avg*0.8;
 }
 
 void init_DC_ADC(void)
@@ -83,8 +89,8 @@ void init_DC_ADC(void)
     //set resolution to 12bit (same as DAC)
     ADC14->CTL1 = ADC14_CTL1_RES_2;
     //enable input channels for peak and valley pin
-    ADC14->MCTL[0] |= ADC14_MCTLN_INCH_15;
-    ADC14->MCTL[1] |= ADC14_MCTLN_INCH_14 | ADC14_MCTLN_EOS;
+    ADC14->MCTL[0] |= ADC14_MCTLN_INCH_14;
+    ADC14->MCTL[1] |= ADC14_MCTLN_INCH_15 | ADC14_MCTLN_EOS;
     //enable interrupts for both peak and valley pins
     ADC14->IER0 |= ADC14_IER0_IE1;
     return;
@@ -104,24 +110,30 @@ void set_DC_offset(void)
     __enable_irq();
     //delay for capacitors to charge/discharge to extreme voltages
 
-    int i = 0;
-    static uint16_t count = 0;
-    static uint32_t dc_acm = 0;
+    uint16_t avg_index = 0;
+    static uint32_t dc_offset_acc = 0;
+    static uint32_t high_acc = 0;
+    static uint32_t low_acc = 0;
 
-    while(i < 10000){
+    while(avg_index < 10000){
         //sample the voltages to determine DC offset
         ADC14->CTL0 |= ADC14_CTL0_ENC | ADC14_CTL0_SC;
         //delay for samples to be captured
+        __delay_cycles(100);
         //calculate DC offset
         dc_offset = (high_value+low_value) >> 1;
-        dc_acm += dc_offset;
-        count++;
-        i++;
+        dc_offset_acc += dc_offset;
+        high_acc += high_value;
+        low_acc += low_value;
+        avg_index++;
     }
-    uint32_t dc_avg = dc_acm/(count);
+    dc_offset_avg = dc_offset_acc/avg_index;
+    high_value_avg = high_acc/avg_index;
+    low_value_avg =  low_acc/avg_index;
+
     //write DC offset to DAC for use in circuit
-     WRITE_DAC(dc_avg);
-    //dmm_flags |= dc_offset_flag;
+    WRITE_DAC(dc_offset_avg);
+    dmm_flags |= dc_offset_flag;
     return;
 }
 
@@ -132,7 +144,8 @@ void set_DC_offset(void)
 uint16_t get_captured_freq(void)
 {
     //return the frequency of the input analog wave
-    return 32000/(captureValues[1] - captureValues[0]);
+    //NVIC->ICER[0] = 1 << ((TA0_N_IRQn) & 31);
+    return 32000/captured_freq;
 }
 
 void init_freq_timer(void)
@@ -235,25 +248,27 @@ float get_sampled_rms(void)
 void ADC14_IRQHandler(void)
 {
     //if we are in the DC offset determination state
-    if ((ADC14->IFGR0 & ADC14_IFGR0_IFG0)){ //& ~(dmm_flags & dc_offset_flag)){
+    if ((ADC14->IFGR0 & ADC14_IFGR0_IFG0)){
+
         //save high dc value for dc offset calculation
         high_value = ADC14->MEM[0];
+
+        if (dmm_flags & dc_offset_flag)
+           {
+               //if array isn't full
+               if (adc_index < 200){
+                   //add samples to array
+                   adc_value[adc_index] = ADC14->MEM[0];
+                   //increment index
+                   adc_index++;
+               }else{
+                   //if array is full write over old data
+
+                   adc_index = 0;
+               }
+           }
     }
     //else if we are in sampling state
-    else if (dmm_flags & dc_offset_flag)
-    {
-        //if array isn't full
-        if (adc_index < 200){
-            //add samples to array
-            adc_value[adc_index] = ADC14->MEM[0];
-            //increment index
-            adc_index++;
-        }else{
-            //if array is full write over old data
-
-            adc_index = 0;
-        }
-    }
     if (ADC14->IFGR0 & ADC14_IFGR0_IFG1)
         //save low dc value for dc offset calculation
         low_value = ADC14->MEM[1];
@@ -263,6 +278,8 @@ void TA0_N_IRQHandler(void)
 {
     //variable for "counting" frequency of input wave
     static volatile uint32_t captureCount = 0;
+    static volatile uint16_t captureValues[2] = {0,0};
+
     if ((TIMER_A0->CCTL[2] & TIMER_A_CCTLN_CCIFG))
     {
         //save value for 2 points
@@ -272,7 +289,11 @@ void TA0_N_IRQHandler(void)
         if (captureCount >= 2)
         {
             //set frequency found flag
-            dmm_flags |= wave_freq_flag;
+            //if ((captureValues[1] - captureValues[0]) < 32000 && (captureValues[1] - captureValues[0]) > 32)
+           // {
+                dmm_flags |= wave_freq_flag;
+                captured_freq = (captureValues[1] - captureValues[0]);
+          //  }
             //reset the capture count for next time
             captureCount = 0;
         }
