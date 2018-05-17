@@ -20,6 +20,7 @@
 #define calc_done_flag BIT3
 #define results_displayed_flag BIT4
 
+#define volt_conv_factor 0.201416
 //-------------------------------------------------------------------------------------------------
 //--------------------------------Functions for All Parts------------------------------------------
 //-------------------------------------------------------------------------------------------------
@@ -52,6 +53,10 @@ void init_sample_timer(uint16_t freq);
 //-------------------------------------------------------------------------------------------------
 void calc_sampled_rms(void);
 uint16_t get_sampled_rms(void);
-
+uint16_t get_sampled_DC(void);
+void calc_sampled_DC(void);
+uint16_t get_max(void);
+uint16_t get_max(void);
+void calc_max_min(void);
 
 

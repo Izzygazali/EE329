@@ -1,5 +1,7 @@
 #include "msp.h"
 #include "dmm_functions.h"
+#include "UART.h"
+
 uint16_t freq = 0;
 uint16_t rmsTEST = 0;
 
@@ -86,6 +88,8 @@ void sample_wave_logic(void)
 void perform_calculations_logic(void)
 {
     calc_sampled_rms();
+    calc_sampled_DC();
+    calc_max_min();
     return;
 }
 
@@ -131,8 +135,9 @@ void DMM_FSM(void)
                 break;
             }
             //display results function
+            update_display(get_captured_freq(), get_max(), get_min(), get_sampled_rms(), get_sampled_DC());
             set_dmm_flags(results_displayed_flag);
-            __delay_cycles(100);
+            __delay_cycles(24000000);
             break;
         case reset_state:
             //reset variables
@@ -153,6 +158,8 @@ void init_DMM(void)
     __enable_irq();
     init_clock();
     SPI_INIT();
+    UART_init();
+    initialize_console();
     return;
 }
 

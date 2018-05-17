@@ -26,6 +26,10 @@ static volatile uint16_t adc_index = 0;
 
 //variables for calculations
 float rms = 0;
+float DC = 0;
+uint16_t max = 0;
+uint16_t min = 16384;
+
 //-------------------------------------------------------------------------------------------------
 //--------------------------------Functions for All Parts------------------------------------------
 //-------------------------------------------------------------------------------------------------
@@ -66,20 +70,20 @@ uint16_t get_DC_offset(void)
 {
     NVIC->ICER[0] = 1 << ((ADC14_IRQn) & 31);
     //return DC offset value in volts
-    return dc_offset_avg*0.8;
+    return dc_offset_avg*volt_conv_factor;
 }
 uint16_t get_high_voltage(void)
 {
     NVIC->ICER[0] = 1 << ((ADC14_IRQn) & 31);
     //return DC high value in volts
-    return high_value_avg*0.8;
+    return high_value_avg*volt_conv_factor;
 }
 
 uint16_t get_low_voltage(void)
 {
     NVIC->ICER[0] = 1 << ((ADC14_IRQn) & 31);
     //return DC low value in volts
-    return low_value_avg*0.8;
+    return low_value_avg*volt_conv_factor;
 }
 
 void init_DC_ADC(void)
@@ -93,7 +97,7 @@ void init_DC_ADC(void)
     ADC14->CTL0 = ADC14_CTL0_SHT0_0 |
                   ADC14_CTL0_ON |
                   ADC14_CTL0_SHP| ADC14_CTL0_CONSEQ_3;
-    //set resolution to 12bit (same as DAC)
+    //set resolution to 14bit
     ADC14->CTL1 = ADC14_CTL1_RES_3;
     //enable input channels for peak and valley pin
     ADC14->MCTL[0] |= ADC14_MCTLN_INCH_0;
@@ -235,7 +239,50 @@ void init_sample_timer(uint16_t freq)
 //-------------------------------------------------------------------------------------------------
 uint16_t get_sampled_rms(void)
 {
-    return rms;
+    return rms*volt_conv_factor;
+}
+
+uint16_t get_sampled_DC(void)
+{
+    return DC*volt_conv_factor;
+}
+
+uint16_t get_max(void)
+{
+    return max*volt_conv_factor;
+}
+
+uint16_t get_min(void)
+{
+    return min*volt_conv_factor;
+}
+
+void calc_max_min(void)
+{
+     uint16_t max_min_index;
+     max = 0;
+     min = 16384;
+
+     for (max_min_index = 0; max_min_index < 500; max_min_index++){
+         if (adc_value[max_min_index] < min)
+             min = adc_value[max_min_index];
+         if (adc_value[max_min_index] > max)
+             max = adc_value[max_min_index];
+     }
+     return;
+}
+
+void calc_sampled_DC(void)
+{
+    uint16_t DC_index;
+    DC = 0;
+
+    for (DC_index = 0; DC_index < 500; DC_index++){
+        DC += adc_value[DC_index];
+    }
+    uint16_t sample_num = sizeof(adc_value)/sizeof(adc_value[0]);
+    DC /= sample_num;
+    return;
 }
 
 void calc_sampled_rms(void)
