@@ -3,6 +3,7 @@
 #define CLEAR_SCREEN            "\x1B[2K"
 #define CURSOR_HOME             "\x1B[H"
 #define CURSOR_POSITION_FREQ    "\x1B[5;15H"
+#define CURSOR_POSITION_VALID   "\x1B[5;70H"
 #define CURSOR_POSITION_MAX     "\x1B[6;14H"
 #define CURSOR_POSITION_MIN     "\x1B[7;14H"
 #define CURSOR_POSITION_RMS     "\x1B[8;14H"
@@ -10,8 +11,13 @@
 #define CURSOR_POSITION_RMS_BAR "\x1B[8;24H"
 #define CURSOR_POSITION_DC_BAR  "\x1B[9;24H"
 #define COLOR_BACKGROUND_BLACK  "\x1B[40m"
+#define COLOR_BACKGROUND_RED    "\x1B[41m"
+#define COLOR_BACKGROUND_GREEN  "\x1B[42m"
 #define COLOR_FOREGROUND_RED    "\x1B[31m"
 #define COLOR_FOREGROUND_WHITE  "\x1B[37m"
+#define COLOR_FOREGROUND_GREEN  "\x1B[32m"
+
+
 
 
 
@@ -30,6 +36,31 @@ void UART_write_string(char inputString[]){
         EUSCI_A0->TXBUF = inputString[i];
         i++;
     }
+    return;
+}
+
+
+void check_valid(uint16_t FREQ, uint16_t MAX, uint16_t MIN, uint16_t RMS, uint16_t DC)
+{
+    UART_write_string(CURSOR_HOME);
+    UART_write_string(CURSOR_POSITION_VALID);
+
+    if(FREQ > 1000)
+        UART_write_string(COLOR_BACKGROUND_RED);
+    else if(MAX > 3300)
+        UART_write_string(COLOR_BACKGROUND_RED);
+    else if(MIN > 3300)
+        UART_write_string(COLOR_BACKGROUND_RED);
+    else if(RMS > 3300)
+        UART_write_string(COLOR_BACKGROUND_RED);
+    else if(DC > 3300)
+        UART_write_string(COLOR_BACKGROUND_RED);
+    else
+        UART_write_string(COLOR_BACKGROUND_GREEN);
+
+    UART_write_string(" ");
+    UART_write_string(COLOR_BACKGROUND_BLACK);
+
     return;
 }
 
@@ -82,7 +113,7 @@ void initialize_console(void)
     UART_write_string("|************************ EE329 Project 3 ****************************|\n\r");
     UART_write_string("|********************** Digital Mulitmeter ***************************|\n\r");
     UART_write_string("|_____________________________________________________________________|\n\r");
-    UART_write_string("|Frequency :       Hz                                                 |\n\r");
+    UART_write_string("|Frequency :       Hz                                          Valid  |\n\r");
     UART_write_string("|Max. Val  :       V                                                  |\n\r");
     UART_write_string("|Min. Val  :       V                                                  |\n\r");
     UART_write_string("|RMS       : 3.300 V  |-----------------------------------|           |\n\r");
@@ -205,12 +236,28 @@ void set_voltage_bars(uint16_t voltage)
 {
     //variable initialization
     uint8_t num = voltage/100;
-    uint8_t i;
+    uint8_t bar = 0;
+    uint8_t dash = 0;
 
-    UART_write_string(COLOR_FOREGROUND_RED);    //character color set to RED
-    for(i = 0; i < num; i++)
-        UART_write_string("]");                 //print characters
-    UART_write_string(COLOR_FOREGROUND_WHITE);  //reset character color to white
+        //character color set to RED
+
+    if(num < 35)
+    {
+        UART_write_string(COLOR_FOREGROUND_RED);
+        while(bar < num)
+        {
+            UART_write_string("]");                 //print bars
+            bar++;
+            dash++;
+        }
+        UART_write_string(COLOR_FOREGROUND_WHITE);
+        while(dash < 35)
+        {
+            UART_write_string("-");
+            dash++;
+        }
+    }
+    UART_write_string(COLOR_FOREGROUND_WHITE);      //reset character color to white
     return;
 }
 
@@ -225,6 +272,8 @@ void set_voltage_bars(uint16_t voltage)
  */
 void update_display(uint16_t FREQ, uint16_t MAX, uint16_t MIN, uint16_t RMS, uint16_t DC)
 {
+    check_valid( FREQ, MAX, MIN, RMS, DC);
+
     //In the following code segment, the cursor position is set for each measurement and then
     //the measurement is updated.
     UART_write_string(CURSOR_HOME);
@@ -251,7 +300,7 @@ void update_display(uint16_t FREQ, uint16_t MAX, uint16_t MIN, uint16_t RMS, uin
     voltage_to_console(DC);
     UART_write_string(CURSOR_HOME);
     UART_write_string(CURSOR_POSITION_DC_BAR);
-    set_voltage_bars(RMS);
+    set_voltage_bars(DC);
     return;
 }
 
@@ -259,11 +308,12 @@ void main(void){
     WDTCTL = WDTPW | WDTHOLD;   //disable watchdog timer
     UART_init();
     initialize_console();
-    int i = 0;
-    while(i < 1500){
-        i += 10;
-        update_display(i,i,i,i,i);
-    }
+    update_display(500, 1500, 0, 1500, 3300);
+    update_display(1500, 1500, 0, 500, 1300);
+    update_display(500, 1500, 0, 1500, 3300);
+    update_display(500, 1500, 0, 1500, 4500);
+
+    while(1);
 }
 
 //EUSCI_A0 ISR
