@@ -1,6 +1,7 @@
 #include "msp.h"
 #include "dmm_functions.h"
 uint16_t freq = 0;
+uint16_t rms = 0;
 
 //define states
 enum state_type{
@@ -35,7 +36,6 @@ void DMM_STATE_DECODE(void)
             event = DC_offset_set;
             break;
         case dc_offset_flag | wave_freq_flag:
-            freq = get_captured_freq();
             event = wave_freq_set;
             break;
         case dc_offset_flag | wave_freq_flag | sampling_done_flag:
@@ -64,6 +64,7 @@ void DMM_FSM(void)
         {
             case get_offset_DC:
                 if(event == DC_offset_set){
+                    //NVIC->ICER[0] = 1 << ((TA0_N_IRQn) & 31);
                     state = get_wave_freq;
                     break;
                 }
@@ -72,13 +73,14 @@ void DMM_FSM(void)
                 set_DC_offset();
                 break;
             case get_wave_freq:
-                if(event == wave_freq_set){
+                if(event == wave_freq_set && freq != 0){
+                    ADC14->IER0 &= ~ADC14_IER0_IE1;
+                    NVIC->ICER[0] = 1 << ((TA0_N_IRQn) & 31);
                     state = sample_wave;
                     break;
                 }
-                //get freq function
-                NVIC->ISER[0] = 1 << ((TA0_N_IRQn) & 31);
-                __delay_cycles(1000000);
+                __delay_cycles(24000000);
+                freq = get_captured_freq();
                 break;
             case sample_wave:
                 if(event == wave_sampled){
@@ -89,13 +91,15 @@ void DMM_FSM(void)
                 reset_ADC_index();
                 init_AC_ADC();
                 init_sample_timer(freq);
-                while(~(get_dmm_flags() & sampling_done_flag));
+                while((get_dmm_flags() & sampling_done_flag) == 0);
                 break;
             case perform_calculations:
-                //calculations function
-                if(event == calculations_done)
+                if(event == calculations_done){
                     state = display_results;
-                break;
+                    break;
+                }
+                //calculations function
+                rms=get_sampled_rms();
             case display_results:
                 //display results function
                 if(event == results_displayed)
@@ -116,6 +120,8 @@ void DMM_FSM(void)
 
 
 void main(void){
+    //set ADC input for analog wave to be sampled
+
     WDTCTL = WDTPW | WDTHOLD;   //disable watchdog timer
     SPI_INIT();
     __enable_irq();

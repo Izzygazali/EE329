@@ -21,7 +21,7 @@ uint16_t low_value_avg;
 volatile uint16_t captured_freq = 0;
 
 //variables for sampling wave
-volatile uint16_t adc_value[200];
+volatile uint16_t adc_value[500];
 static volatile uint16_t adc_index = 0;
 //-------------------------------------------------------------------------------------------------
 //--------------------------------Functions for All Parts------------------------------------------
@@ -80,8 +80,8 @@ uint16_t get_low_voltage(void)
 void init_DC_ADC(void)
 {
     //enable ADC inputs for measuring peak and valley voltages from circuit
-    P6->SEL0 |= (PEAK + VALLEY);
-    P6->SEL1 |= (PEAK + VALLEY);
+    P5->SEL0 |= (PEAK + VALLEY);
+    P5->SEL1 |= (PEAK + VALLEY);
     //enable interrupts for ADC
     NVIC->ISER[0] = 1 << ((ADC14_IRQn) & 31);
     //setup relevant parameters for ADC
@@ -89,8 +89,8 @@ void init_DC_ADC(void)
     //set resolution to 12bit (same as DAC)
     ADC14->CTL1 = ADC14_CTL1_RES_2;
     //enable input channels for peak and valley pin
-    ADC14->MCTL[0] |= ADC14_MCTLN_INCH_14;
-    ADC14->MCTL[1] |= ADC14_MCTLN_INCH_15 | ADC14_MCTLN_EOS;
+    ADC14->MCTL[0] |= ADC14_MCTLN_INCH_0;
+    ADC14->MCTL[1] |= ADC14_MCTLN_INCH_3 | ADC14_MCTLN_EOS;
     //enable interrupts for both peak and valley pins
     ADC14->IER0 |= ADC14_IER0_IE1;
     return;
@@ -100,13 +100,13 @@ void set_DC_offset(void)
 {
     __disable_irq();
     //Reset the capacitors in the circuit by "shorting" them
-    P5->DIR |= PEAK;
-    P5->DIR |= VALLEY;
-    P5->OUT &= ~PEAK;
-    P5->OUT |= VALLEY;
+    P5->DIR |= PEAK_RESET;
+    P5->DIR |= VALLEY_RESET;
+    P5->OUT &= ~PEAK_RESET;
+    P5->OUT |= VALLEY_RESET;
     //Set pins to input to "disconnect" them from the circuit
-    P5->DIR &= ~PEAK;
-    P5->DIR &= ~VALLEY;
+    P5->DIR &= ~PEAK_RESET;
+    P5->DIR &= ~VALLEY_RESET;
     __enable_irq();
     //delay for capacitors to charge/discharge to extreme voltages
 
@@ -119,7 +119,7 @@ void set_DC_offset(void)
         //sample the voltages to determine DC offset
         ADC14->CTL0 |= ADC14_CTL0_ENC | ADC14_CTL0_SC;
         //delay for samples to be captured
-        __delay_cycles(100);
+        __delay_cycles(1000);
         //calculate DC offset
         dc_offset = (high_value+low_value) >> 1;
         dc_offset_acc += dc_offset;
@@ -143,8 +143,8 @@ void set_DC_offset(void)
 //-------------------------------------------------------------------------------------------------
 uint16_t get_captured_freq(void)
 {
+    dmm_flags |= wave_freq_flag;
     //return the frequency of the input analog wave
-    NVIC->ICER[0] = 1 << ((TA0_N_IRQn) & 31);
     return 32000/captured_freq;
 }
 
@@ -164,6 +164,7 @@ void init_freq_timer(void)
                          TIMER_A_CCTLN_SCS;
     //enable interrupts for capture mode on (2)
     TIMER_A0->CCTL[2] &= ~TIMER_A_CCTLN_CCIFG;
+    NVIC->ISER[0] = 1 << ((TA0_N_IRQn) & 31);
     return;
 }
 
@@ -178,9 +179,10 @@ void reset_ADC_index(void)
 }
 void init_AC_ADC(void)
 {
-    //set ADC input for analog wave to be sampled
-    P5->SEL0 |= INPUT_WAVE;
-    P5->SEL1 |= INPUT_WAVE;
+    ADC14->CTL0 = 0;
+    ADC14->CTL1 = 0;
+    ADC14->MCTL[0] = 0;
+    ADC14->MCTL[1] = 0;
     //enable interrupts on ADC
     NVIC->ISER[0] = 1 << ((ADC14_IRQn) & 31);
     //set parameters for ADC (single channel)
@@ -188,11 +190,11 @@ void init_AC_ADC(void)
                   ADC14_CTL0_ON |
                   ADC14_CTL0_SHP;
     //set resolution to 14 bit
-    ADC14->CTL1 = ADC14_CTL1_RES_3;
+    ADC14->CTL1 = ADC14_CTL1_RES_3 | (3 << ADC14_CTL1_CSTARTADD_OFS);
     //set input channel
-    ADC14->MCTL[0] |= ADC14_MCTLN_INCH_1;
+    ADC14->MCTL[3] |= ADC14_MCTLN_INCH_1 | ADC14_MCTLN_EOS;
     //enable interrupts on MEMO[0]
-    ADC14->IER0 |= ADC14_IER0_IE0;
+    ADC14->IER0 |= ADC14_IER0_IE3;
     return;
 }
 
@@ -232,13 +234,13 @@ float get_sampled_rms(void)
     float rms = 0;
     uint32_t temp = 0;
 
-    for (i = 0; i < 200; i++){
+    for (i = 0; i < 500; i++){
         temp = adc_value[i];
         rms += temp*temp;
     }
     uint16_t n = sizeof(adc_value)/sizeof(adc_value[0]);
     rms /= n;
-    rms = sqrt(rms);
+    rms = 0.98*sqrt(rms);
     return rms;
 }
 
@@ -248,35 +250,31 @@ float get_sampled_rms(void)
 void ADC14_IRQHandler(void)
 {
     //if we are in the DC offset determination state
-    if ((ADC14->IFGR0 & ADC14_IFGR0_IFG0)){
-
+    if ((ADC14->IFGR0 & ADC14_IFGR0_IFG0))
         //save high dc value for dc offset calculation
         high_value = ADC14->MEM[0];
-
-        if (dmm_flags & dc_offset_flag)
-           {
-               //if array isn't full
-               if (adc_index < 200){
-                   //add samples to array
-                   adc_value[adc_index] = ADC14->MEM[0];
-                   //increment index
-                   adc_index++;
-               }else{
-                   //if array is full write over old data
-
-                   adc_index = 0;
-               }
-           }
-    }
     //else if we are in sampling state
     if (ADC14->IFGR0 & ADC14_IFGR0_IFG1)
         //save low dc value for dc offset calculation
         low_value = ADC14->MEM[1];
+    if ((ADC14->IFGR0 & ADC14_IFGR0_IFG3)){
+
+        //if array isn't full
+        if (adc_index < 500){
+            //add samples to array
+            adc_value[adc_index] = ADC14->MEM[3];
+            //increment index
+            adc_index++;
+        }else{
+            //if array is full write over old data
+            dmm_flags |= sampling_done_flag;
+            adc_index = 0;
+        }
+    }
 }
 
 void TA0_N_IRQHandler(void)
 {
-    P1->OUT |= BIT0;
     //variable for "counting" frequency of input wave
     static volatile uint32_t captureCount = 0;
     static volatile uint16_t captureValues[2] = {0,0};
@@ -292,20 +290,20 @@ void TA0_N_IRQHandler(void)
             //set frequency found flag
             //if ((captureValues[1] - captureValues[0]) < 32000 && (captureValues[1] - captureValues[0]) > 32)
            // {
-                dmm_flags |= wave_freq_flag;
                 captured_freq = (captureValues[1] - captureValues[0]);
+
           //  }
             //reset the capture count for next time
             captureCount = 0;
         }
     }
     //reset timer flag
-    P1->OUT &= ~BIT0;
     TIMER_A0->CCTL[2] &= ~TIMER_A_CCTLN_CCIFG;
 }
 
 void TA0_0_IRQHandler(void)
 {
+    P1->OUT |= BIT0;
     //if sampling timer has caused this interrupt
     if ((TIMER_A0->CCTL[0] & TIMER_A_CCTLN_CCIFG))
     {
@@ -313,6 +311,7 @@ void TA0_0_IRQHandler(void)
         ADC14->CTL0 |= ADC14_CTL0_ENC | ADC14_CTL0_SC;
     }
     //reset timer flag
+    P1->OUT &= ~BIT0;
     TIMER_A0->CCTL[0] &= ~TIMER_A_CCTLN_CCIFG;
 }
 

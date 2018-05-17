@@ -4,8 +4,12 @@
 #include <math.h>
 
 //inputs defined
-#define PEAK BIT0
-#define VALLEY BIT1
+#define PEAK_RESET BIT0
+#define VALLEY_RESET BIT1
+#define PEAK BIT2
+#define VALLEY BIT5
+
+
 #define INPUT_FREQ BIT5
 #define INPUT_WAVE BIT4
 
