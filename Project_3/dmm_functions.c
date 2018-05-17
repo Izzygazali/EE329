@@ -23,6 +23,9 @@ volatile uint16_t captured_freq = 0;
 //variables for sampling wave
 volatile uint16_t adc_value[500];
 static volatile uint16_t adc_index = 0;
+
+//variables for calculations
+float rms = 0;
 //-------------------------------------------------------------------------------------------------
 //--------------------------------Functions for All Parts------------------------------------------
 //-------------------------------------------------------------------------------------------------
@@ -85,9 +88,11 @@ void init_DC_ADC(void)
     //enable interrupts for ADC
     NVIC->ISER[0] = 1 << ((ADC14_IRQn) & 31);
     //setup relevant parameters for ADC
-    ADC14->CTL0 = ADC14_CTL0_SHT0_2 | ADC14_CTL0_ON | ADC14_CTL0_SHP | ADC14_CTL0_CONSEQ_3;
+    ADC14->CTL0 = ADC14_CTL0_SHT0_0 |
+                  ADC14_CTL0_ON |
+                  ADC14_CTL0_SHP| ADC14_CTL0_CONSEQ_3;
     //set resolution to 12bit (same as DAC)
-    ADC14->CTL1 = ADC14_CTL1_RES_2;
+    ADC14->CTL1 = ADC14_CTL1_RES_3;
     //enable input channels for peak and valley pin
     ADC14->MCTL[0] |= ADC14_MCTLN_INCH_0;
     ADC14->MCTL[1] |= ADC14_MCTLN_INCH_3 | ADC14_MCTLN_EOS;
@@ -98,7 +103,6 @@ void init_DC_ADC(void)
 
 void set_DC_offset(void)
 {
-    __disable_irq();
     //Reset the capacitors in the circuit by "shorting" them
     P5->DIR |= PEAK_RESET;
     P5->DIR |= VALLEY_RESET;
@@ -107,7 +111,6 @@ void set_DC_offset(void)
     //Set pins to input to "disconnect" them from the circuit
     P5->DIR &= ~PEAK_RESET;
     P5->DIR &= ~VALLEY_RESET;
-    __enable_irq();
     //delay for capacitors to charge/discharge to extreme voltages
 
     uint16_t avg_index = 0;
@@ -127,12 +130,12 @@ void set_DC_offset(void)
         low_acc += low_value;
         avg_index++;
     }
-    dc_offset_avg = dc_offset_acc/avg_index;
+    dc_offset_avg =  dc_offset_acc/avg_index;
     high_value_avg = high_acc/avg_index;
     low_value_avg =  low_acc/avg_index;
 
     //write DC offset to DAC for use in circuit
-    WRITE_DAC(dc_offset_avg);
+    WRITE_DAC(dc_offset_avg >> 2);
     dmm_flags |= dc_offset_flag;
     return;
 }
@@ -143,7 +146,6 @@ void set_DC_offset(void)
 //-------------------------------------------------------------------------------------------------
 uint16_t get_captured_freq(void)
 {
-    dmm_flags |= wave_freq_flag;
     //return the frequency of the input analog wave
     return 32000/captured_freq;
 }
@@ -228,20 +230,26 @@ void init_sample_timer(uint16_t freq)
 //-------------------------------------------------------------------------------------------------
 //-----------------------------------Functions for Calculations------------------------------------
 //-------------------------------------------------------------------------------------------------
-float get_sampled_rms(void)
+uint16_t get_sampled_rms(void)
 {
-    int i;
-    float rms = 0;
-    uint32_t temp = 0;
-
-    for (i = 0; i < 500; i++){
-        temp = adc_value[i];
-        rms += temp*temp;
-    }
-    uint16_t n = sizeof(adc_value)/sizeof(adc_value[0]);
-    rms /= n;
-    rms = 0.98*sqrt(rms);
     return rms;
+}
+
+void calc_sampled_rms(void)
+{
+    uint16_t rms_index;
+    uint32_t inter_rms = 0;
+    rms = 0;
+
+    for (rms_index = 0; rms_index < 500; rms_index++){
+        inter_rms = adc_value[rms_index];
+        rms += inter_rms*inter_rms;
+    }
+    uint16_t sample_num = sizeof(adc_value)/sizeof(adc_value[0]);
+    rms /= sample_num;
+    rms = sqrt(rms);
+    dmm_flags |= calc_done_flag;
+    return;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -288,12 +296,11 @@ void TA0_N_IRQHandler(void)
         if (captureCount >= 2)
         {
             //set frequency found flag
-            //if ((captureValues[1] - captureValues[0]) < 32000 && (captureValues[1] - captureValues[0]) > 32)
-           // {
+            if ((captureValues[1] - captureValues[0]) > 0)
+            {
+                dmm_flags |= wave_freq_flag;
                 captured_freq = (captureValues[1] - captureValues[0]);
-
-          //  }
-            //reset the capture count for next time
+            }
             captureCount = 0;
         }
     }

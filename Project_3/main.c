@@ -1,7 +1,7 @@
 #include "msp.h"
 #include "dmm_functions.h"
 uint16_t freq = 0;
-uint16_t rms = 0;
+uint16_t rmsTEST = 0;
 
 //define states
 enum state_type{
@@ -27,7 +27,7 @@ enum event_type{
 enum event_type event;
 
 
-void DMM_STATE_DECODE(void)
+void DMM_state_decode(void)
 {
     uint16_t curr_flags = get_dmm_flags();
     switch(curr_flags)
@@ -55,89 +55,118 @@ void DMM_STATE_DECODE(void)
 }
 
 
+void dc_offset_logic(void)
+{
+    init_DC_ADC();
+    set_DC_offset();
+    ADC14->IER0 &= ~ADC14_IER0_IE1;
+    return;
+}
+
+void wave_freq_logic(void)
+{
+    init_freq_timer();
+    while((get_dmm_flags() & wave_freq_flag) == 0);
+    NVIC->ICER[0] = 1 << ((TA0_N_IRQn) & 31);
+    freq = get_captured_freq();
+    return;
+}
+
+void sample_wave_logic(void)
+{
+    reset_ADC_index();
+    init_AC_ADC();
+    init_sample_timer(get_captured_freq());
+    while((get_dmm_flags() & sampling_done_flag) == 0);
+    ADC14->IER0 &= ~ADC14_IER0_IE3;
+    NVIC->ICER[0] = 1 << ((TA0_0_IRQn) & 31);
+    return;
+}
+
+void perform_calculations_logic(void)
+{
+    calc_sampled_rms();
+    return;
+}
 
 void DMM_FSM(void)
 {
-
     static enum state_type state = get_offset_DC;
-        switch(state)
-        {
-            case get_offset_DC:
-                if(event == DC_offset_set){
-                    //NVIC->ICER[0] = 1 << ((TA0_N_IRQn) & 31);
-                    state = get_wave_freq;
-                    break;
-                }
-                //DC offset function
-                init_DC_ADC();
-                set_DC_offset();
+    switch(state)
+    {
+        case get_offset_DC:
+            if(event == DC_offset_set){
+                state = get_wave_freq;
                 break;
-            case get_wave_freq:
-                if(event == wave_freq_set && freq != 0){
-                    ADC14->IER0 &= ~ADC14_IER0_IE1;
-                    NVIC->ICER[0] = 1 << ((TA0_N_IRQn) & 31);
-                    state = sample_wave;
-                    break;
-                }
-                __delay_cycles(24000000);
-                freq = get_captured_freq();
+            }
+            //DC offset function
+            dc_offset_logic();
+            break;
+        case get_wave_freq:
+            if(event == wave_freq_set){
+                state = sample_wave;
                 break;
-            case sample_wave:
-                if(event == wave_sampled){
-                    state = perform_calculations;
-                    break;
-                }
-                //sample wave function
-                reset_ADC_index();
-                init_AC_ADC();
-                init_sample_timer(freq);
-                while((get_dmm_flags() & sampling_done_flag) == 0);
+            }
+            wave_freq_logic();
+            break;
+        case sample_wave:
+            if(event == wave_sampled){
+                state = perform_calculations;
                 break;
-            case perform_calculations:
-                if(event == calculations_done){
-                    state = display_results;
-                    break;
-                }
-                //calculations function
-                rms=get_sampled_rms();
-            case display_results:
-                //display results function
-                if(event == results_displayed)
-                    state = reset_state;
+            }
+            //sample wave function
+            sample_wave_logic();
+            break;
+        case perform_calculations:
+            if(event == calculations_done){
+                state = display_results;
                 break;
-            case reset_state:
-                //reset variables
-                reset_dmm_flags();
-                state = get_offset_DC;
-                event = reset;
-                break;
-            default:
+            }
+            //calculations function
+            perform_calculations_logic();
+            break;
+        case display_results:
+            if(event == results_displayed){
                 state = reset_state;
                 break;
-        }
-        return;
+            }
+            //display results function
+            __delay_cycles(100);
+            break;
+        case reset_state:
+            //reset variables
+            reset_dmm_flags();
+            state = get_offset_DC;
+            event = reset;
+            break;
+        default:
+            state = reset_state;
+            break;
+    }
+    return;
+}
+
+void init_DMM(void)
+{
+    P1->DIR |= BIT0;
+    __enable_irq();
+    init_clock();
+    SPI_INIT();
+    return;
 }
 
 
-void main(void){
+void main(void)
+{
     //set ADC input for analog wave to be sampled
 
     WDTCTL = WDTPW | WDTHOLD;   //disable watchdog timer
-    SPI_INIT();
-    __enable_irq();
-    init_clock();
-    P1->DIR |= BIT0;
-    WRITE_DAC(4095);
-
-    init_freq_timer();
-
-
-    while(1){
-        DMM_STATE_DECODE();
+    init_DMM();
+    while(1)
+    {
+        DMM_state_decode();
         DMM_FSM();
-
     }
-
 }
 
 
