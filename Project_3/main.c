@@ -4,12 +4,13 @@
 #define CURSOR_HOME             "\x1B[H"
 #define CURSOR_POSITION_FREQ    "\x1B[5;15H"
 #define CURSOR_POSITION_VALID   "\x1B[5;70H"
-#define CURSOR_POSITION_MAX     "\x1B[6;14H"
-#define CURSOR_POSITION_MIN     "\x1B[7;14H"
-#define CURSOR_POSITION_RMS     "\x1B[8;14H"
-#define CURSOR_POSITION_DC      "\x1B[9;14H"
-#define CURSOR_POSITION_RMS_BAR "\x1B[8;24H"
-#define CURSOR_POSITION_DC_BAR  "\x1B[9;24H"
+#define CURSOR_POSITION_VPP     "\x1B[6;14H"
+#define CURSOR_POSITION_MAX     "\x1B[7;14H"
+#define CURSOR_POSITION_MIN     "\x1B[8;14H"
+#define CURSOR_POSITION_RMS     "\x1B[9;14H"
+#define CURSOR_POSITION_DC      "\x1B[10;14H"
+#define CURSOR_POSITION_RMS_BAR "\x1B[9;24H"
+#define CURSOR_POSITION_DC_BAR  "\x1B[10;24H"
 #define COLOR_BACKGROUND_BLACK  "\x1B[40m"
 #define COLOR_BACKGROUND_RED    "\x1B[41m"
 #define COLOR_BACKGROUND_GREEN  "\x1B[42m"
@@ -114,6 +115,7 @@ void initialize_console(void)
     UART_write_string("|********************** Digital Mulitmeter ***************************|\n\r");
     UART_write_string("|_____________________________________________________________________|\n\r");
     UART_write_string("|Frequency :       Hz                                          Valid  |\n\r");
+    UART_write_string("|Vp-p      :       V                                                  |\n\r");
     UART_write_string("|Max. Val  :       V                                                  |\n\r");
     UART_write_string("|Min. Val  :       V                                                  |\n\r");
     UART_write_string("|RMS       : 3.300 V  |-----------------------------------|           |\n\r");
@@ -281,6 +283,10 @@ void update_display(uint16_t FREQ, uint16_t MAX, uint16_t MIN, uint16_t RMS, uin
     freq_to_console(FREQ);
 
     UART_write_string(CURSOR_HOME);
+    UART_write_string(CURSOR_POSITION_VPP);
+    voltage_to_console((MAX-MIN));
+
+    UART_write_string(CURSOR_HOME);
     UART_write_string(CURSOR_POSITION_MAX);
     voltage_to_console(MAX);
 
@@ -309,9 +315,9 @@ void main(void){
     UART_init();
     initialize_console();
     update_display(500, 1500, 0, 1500, 3300);
-    update_display(1500, 1500, 0, 500, 1300);
-    update_display(500, 1500, 0, 1500, 3300);
-    update_display(500, 1500, 0, 1500, 4500);
+    update_display(1500, 1500, 100, 500, 1300);
+    update_display(500, 1500, 500, 1500, 3300);
+    update_display(500, 1500, 1000, 1500, 4500);
 
     while(1);
 }
