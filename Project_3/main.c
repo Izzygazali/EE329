@@ -19,11 +19,6 @@
 #define COLOR_FOREGROUND_GREEN  "\x1B[32m"
 
 
-
-
-
-
-
 /*
  * Function that sends a string to the console
  * INPUTS:      unsigned char inputString[] = string to write to console
