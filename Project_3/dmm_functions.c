@@ -52,11 +52,13 @@ void init_clock(void)
     CS->CTL0 = 0;
     CS ->CTL0 |= CS_CTL0_DCORSEL_4;
     CS ->CLKEN |= CS_CLKEN_ACLK_EN | CS_CLKEN_REFOFSEL;
-    CS->CTL1 |= CS_CTL1_SELA__REFOCLK | CS_CTL1_DIVA_2 |
+    CS->CTL1 |= CS_CTL1_SELA__REFOCLK | CS_CTL1_DIVA_1 |
                 CS_CTL1_SELS__DCOCLK | CS_CTL1_SELM__DCOCLK;
     CS ->KEY = 0;
     return;
 }
+
+
 //-------------------------------------------------------------------------------------------------
 //--------------------------------Functions for DC Offset------------------------------------------
 //-------------------------------------------------------------------------------------------------
@@ -114,15 +116,15 @@ void set_DC_offset(void)
     //delay for capacitors to charge/discharge to extreme voltages
 
     uint16_t avg_index = 0;
-    static uint32_t dc_offset_acc = 0;
-    static uint32_t high_acc = 0;
-    static uint32_t low_acc = 0;
+    uint32_t dc_offset_acc = 0;
+    uint32_t high_acc = 0;
+    uint32_t low_acc = 0;
 
     while(avg_index < 10000){
         //sample the voltages to determine DC offset
         ADC14->CTL0 |= ADC14_CTL0_ENC | ADC14_CTL0_SC;
         //delay for samples to be captured
-        __delay_cycles(1000);
+        __delay_cycles(10);
         //calculate DC offset
         dc_offset = (high_value+low_value) >> 1;
         dc_offset_acc += dc_offset;
@@ -147,7 +149,7 @@ void set_DC_offset(void)
 uint16_t get_captured_freq(void)
 {
     //return the frequency of the input analog wave
-    return 32000/captured_freq;
+    return 64000/captured_freq;
 }
 
 void init_freq_timer(void)
@@ -156,6 +158,7 @@ void init_freq_timer(void)
     P2->SEL0 |= INPUT_FREQ;
     P2->SEL1 &= ~INPUT_FREQ;
     P2->DIR  &= ~INPUT_FREQ;
+    TIMER_A0->CTL = 0;
     //Setup mode and clock source for the capture timer
     TIMER_A0->CTL |= TIMER_A_CTL_SSEL__ACLK |
                      TIMER_A_CTL_MC__CONTINUOUS |
@@ -300,6 +303,8 @@ void TA0_N_IRQHandler(void)
             {
                 dmm_flags |= wave_freq_flag;
                 captured_freq = (captureValues[1] - captureValues[0]);
+                captureValues[0] = 0;
+                captureValues[1] = 0;
             }
             captureCount = 0;
         }

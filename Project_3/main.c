@@ -131,6 +131,7 @@ void DMM_FSM(void)
                 break;
             }
             //display results function
+            set_dmm_flags(results_displayed_flag);
             __delay_cycles(100);
             break;
         case reset_state:
