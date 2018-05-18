@@ -52,12 +52,6 @@ void UART_init(void){
     P1 -> SEL0 |=  (BIT2 | BIT3);
     P1 -> SEL1 &= ~(BIT2 | BIT3);
 
-    CS->KEY = CS_KEY_VAL;                   // Unlock CS module for register access
-    CS->CTL0 = 0;                           // Reset tuning parameters
-    CS->CTL0 = CS_CTL0_DCORSEL_4;           // Set DCO to 24MHz (nominal, center of 8-16MHz range)
-    CS->CTL1 = CS_CTL1_SELS_3;              // SMCLK = DCO
-    CS->KEY = 0;                            // Lock CS module from unintended accesses
-
 
     EUSCI_A0 -> CTLW0 |= EUSCI_A_CTLW0_SWRST;               //hold in reset state
     EUSCI_A0 -> CTLW0 |= EUSCI_A_CTLW0_SSEL__SMCLK       |  //set SMCLK as source

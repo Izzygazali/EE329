@@ -18,8 +18,8 @@
 #define COLOR_FOREGROUND_WHITE  "\x1B[37m"
 #define COLOR_FOREGROUND_GREEN  "\x1B[32m"
 
-void check_valid(uint16_t FREQ, uint16_t MAX, uint16_t MIN, uint16_t RMS, uint16_t DC);
 void UART_write_string(char inputString[]);
+void check_valid(uint16_t FREQ, uint16_t MAX, uint16_t MIN, uint16_t RMS, uint16_t DC);
 void UART_init(void);
 void initialize_console(void);
 uint16_t binary_to_bcd(uint16_t binary_number);

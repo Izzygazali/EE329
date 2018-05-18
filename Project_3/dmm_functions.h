@@ -19,7 +19,7 @@
 #define sampling_done_flag BIT2
 #define calc_done_flag BIT3
 #define results_displayed_flag BIT4
-#define invalid_freq_flag BIT4
+
 
 #define volt_conv_factor 0.201416
 //-------------------------------------------------------------------------------------------------

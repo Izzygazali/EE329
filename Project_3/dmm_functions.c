@@ -145,7 +145,7 @@ void set_DC_offset(void)
     uint32_t high_acc = 0;
     uint32_t low_acc = 0;
 
-    while(avg_index < 10000){
+    while(avg_index < 100){
         //sample the voltages to determine DC offset
         ADC14->CTL0 |= ADC14_CTL0_ENC | ADC14_CTL0_SC;
         //delay for samples to be captured
