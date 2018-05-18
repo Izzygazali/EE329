@@ -19,15 +19,18 @@
 #define sampling_done_flag BIT2
 #define calc_done_flag BIT3
 #define results_displayed_flag BIT4
+#define invalid_freq_flag BIT4
 
 #define volt_conv_factor 0.201416
 //-------------------------------------------------------------------------------------------------
 //--------------------------------Functions for All Parts------------------------------------------
 //-------------------------------------------------------------------------------------------------
 uint16_t get_dmm_flags(void);
-void reset_dmm_flags(void);
+void reset_dmm_flags(uint16_t flags);
 void set_dmm_flags(uint16_t flags);
 void init_clock(void);
+void set_freq_fast(void);
+void set_freq_slow(void);
 //-------------------------------------------------------------------------------------------------
 //--------------------------------Functions for DC Offset------------------------------------------
 //-------------------------------------------------------------------------------------------------
@@ -41,6 +44,7 @@ void set_DC_offset(void);
 //-------------------------------------------------------------------------------------------------
 uint16_t get_captured_freq(void);
 void init_freq_timer(void);
+void set_freq_conversion(uint32_t input_conv_factor);
 //-------------------------------------------------------------------------------------------------
 //--------------------------------Functions for Sampling of Wave-----------------------------------
 //-------------------------------------------------------------------------------------------------
@@ -56,7 +60,7 @@ uint16_t get_sampled_rms(void);
 uint16_t get_sampled_DC(void);
 void calc_sampled_DC(void);
 uint16_t get_max(void);
-uint16_t get_max(void);
+uint16_t get_min(void);
 void calc_max_min(void);
 
 

@@ -67,10 +67,19 @@ void dc_offset_logic(void)
 
 void wave_freq_logic(void)
 {
+    set_freq_slow();
+    set_freq_conversion(32000);
     init_freq_timer();
     while((get_dmm_flags() & wave_freq_flag) == 0);
     NVIC->ICER[0] = 1 << ((TA0_N_IRQn) & 31);
-    freq = get_captured_freq();
+    if (get_captured_freq() > 100){
+        reset_dmm_flags(wave_freq_flag);
+        set_freq_fast();
+        set_freq_conversion(756400);
+        init_freq_timer();
+        while((get_dmm_flags() & wave_freq_flag) == 0);
+        NVIC->ICER[0] = 1 << ((TA0_N_IRQn) & 31);
+    }
     return;
 }
 
@@ -141,7 +150,7 @@ void DMM_FSM(void)
             break;
         case reset_state:
             //reset variables
-            reset_dmm_flags();
+            reset_dmm_flags(0xFF);
             state = get_offset_DC;
             event = reset;
             break;

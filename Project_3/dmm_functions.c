@@ -19,6 +19,7 @@ uint16_t low_value_avg;
 
 //variables for frequency determination
 volatile uint16_t captured_freq = 0;
+uint32_t freq_conv_factor = 0;
 
 //variables for sampling wave
 volatile uint16_t adc_value[500];
@@ -39,10 +40,10 @@ uint16_t get_dmm_flags(void)
     return dmm_flags;
 }
 
-void reset_dmm_flags(void)
+void reset_dmm_flags(uint16_t flags)
 {
     //reset flags for DMM
-    dmm_flags = 0;
+    dmm_flags &= ~flags;
 }
 
 void set_dmm_flags(uint16_t flags)
@@ -52,16 +53,36 @@ void set_dmm_flags(uint16_t flags)
 
 void init_clock(void)
 {
+    P4->DIR |= BIT2;
+    P4->SEL0 |= BIT2;
+    P4->SEL1 &= ~BIT2;
+
     CS ->KEY = CS_KEY_VAL;
     CS->CTL0 = 0;
     CS ->CTL0 |= CS_CTL0_DCORSEL_4;
     CS ->CLKEN |= CS_CLKEN_ACLK_EN | CS_CLKEN_REFOFSEL;
-    CS->CTL1 |= CS_CTL1_SELA__REFOCLK | CS_CTL1_DIVA_1 |
+    CS->CTL1 |= CS_CTL1_SELA__REFOCLK | CS_CTL1_DIVA_2 |
                 CS_CTL1_SELS__DCOCLK | CS_CTL1_SELM__DCOCLK;
     CS ->KEY = 0;
     return;
 }
 
+/*void set_clock_slow(void)
+{
+    CS ->KEY = CS_KEY_VAL;
+    CS->CTL1 &= ~CS_CTL1_DIVA_MASK;
+    CS->CTL1 |= CS_CTL1_DIVA_2;
+    CS ->KEY = 0;
+    return;
+}
+void set_clock_fast(void)
+{
+    CS ->KEY = CS_KEY_VAL;
+    CS->CTL1 &= ~CS_CTL1_DIVA_MASK;
+    CS->CTL1 |=  CS_CTL1_DIVA_0;
+    CS ->KEY = 0;
+    return;
+}*/
 
 //-------------------------------------------------------------------------------------------------
 //--------------------------------Functions for DC Offset------------------------------------------
@@ -150,10 +171,36 @@ void set_DC_offset(void)
 //-------------------------------------------------------------------------------------------------
 //--------------------------------Functions for Frequency of Wave----------------------------------
 //-------------------------------------------------------------------------------------------------
+void set_freq_conversion(uint32_t input_conv_factor)
+{
+    freq_conv_factor = input_conv_factor;
+    return;
+}
 uint16_t get_captured_freq(void)
 {
     //return the frequency of the input analog wave
-    return 64000/captured_freq;
+    return freq_conv_factor/captured_freq;
+}
+
+void set_freq_fast(void)
+{
+    TIMER_A0->CTL = 0;
+    TIMER_A0->EX0 = 0;
+    TIMER_A0->CTL |= TIMER_A_CTL_SSEL__SMCLK |
+                     TIMER_A_CTL_MC__CONTINUOUS |
+                     TIMER_A_CTL_CLR |
+                     TIMER_A_CTL_ID__4;
+    TIMER_A0->EX0 |= TIMER_A_EX0_IDEX__8;
+    return;
+}
+void set_freq_slow(void)
+{
+    TIMER_A0->CTL = 0;
+    TIMER_A0->EX0 = 0;
+    TIMER_A0->CTL |= TIMER_A_CTL_SSEL__ACLK |
+                     TIMER_A_CTL_MC__CONTINUOUS |
+                     TIMER_A_CTL_CLR;
+    return;
 }
 
 void init_freq_timer(void)
@@ -162,11 +209,7 @@ void init_freq_timer(void)
     P2->SEL0 |= INPUT_FREQ;
     P2->SEL1 &= ~INPUT_FREQ;
     P2->DIR  &= ~INPUT_FREQ;
-    TIMER_A0->CTL = 0;
-    //Setup mode and clock source for the capture timer
-    TIMER_A0->CTL |= TIMER_A_CTL_SSEL__ACLK |
-                     TIMER_A_CTL_MC__CONTINUOUS |
-                     TIMER_A_CTL_CLR;
+
     //setup capture mode parameters
     TIMER_A0->CCTL[2] |= TIMER_A_CCTLN_CAP | TIMER_A_CCTLN_CM_1 |
                          TIMER_A_CCTLN_CCIS_0 | TIMER_A_CCTLN_CCIE |
