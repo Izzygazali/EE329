@@ -16,6 +16,31 @@ void UART_write_string(char inputString[]){
     return;
 }
 
+
+void check_valid(uint16_t FREQ, uint16_t MAX, uint16_t MIN, uint16_t RMS, uint16_t DC)
+{
+    UART_write_string(CURSOR_HOME);
+    UART_write_string(CURSOR_POSITION_VALID);
+
+    if(FREQ > 1000)
+        UART_write_string(COLOR_BACKGROUND_RED);
+    else if(MAX > 3300)
+        UART_write_string(COLOR_BACKGROUND_RED);
+    else if(MIN > 3300)
+        UART_write_string(COLOR_BACKGROUND_RED);
+    else if(RMS > 3300)
+        UART_write_string(COLOR_BACKGROUND_RED);
+    else if(DC > 3300)
+        UART_write_string(COLOR_BACKGROUND_RED);
+    else
+        UART_write_string(COLOR_BACKGROUND_GREEN);
+
+    UART_write_string(" ");
+    UART_write_string(COLOR_BACKGROUND_BLACK);
+
+    return;
+}
+
 /*
  * Function that handles UART initialization. UART is initialized to
  * use P1.2 for receiving and P1.3 for transmitting.
@@ -27,12 +52,12 @@ void UART_init(void){
     P1 -> SEL0 |=  (BIT2 | BIT3);
     P1 -> SEL1 &= ~(BIT2 | BIT3);
 
-/*    CS->KEY = CS_KEY_VAL;                   // Unlock CS module for register access
+    CS->KEY = CS_KEY_VAL;                   // Unlock CS module for register access
     CS->CTL0 = 0;                           // Reset tuning parameters
     CS->CTL0 = CS_CTL0_DCORSEL_4;           // Set DCO to 24MHz (nominal, center of 8-16MHz range)
     CS->CTL1 = CS_CTL1_SELS_3;              // SMCLK = DCO
     CS->KEY = 0;                            // Lock CS module from unintended accesses
-*/
+
 
     EUSCI_A0 -> CTLW0 |= EUSCI_A_CTLW0_SWRST;               //hold in reset state
     EUSCI_A0 -> CTLW0 |= EUSCI_A_CTLW0_SSEL__SMCLK       |  //set SMCLK as source
@@ -61,11 +86,12 @@ void initialize_console(void)
     UART_write_string(CURSOR_HOME);
     UART_write_string(COLOR_BACKGROUND_BLACK);
     UART_write_string(COLOR_FOREGROUND_WHITE);
-    UART_write_string("______________________________________________________________________ \n\r");
+    UART_write_string("______________________________________________________________________\n\r");
     UART_write_string("|************************ EE329 Project 3 ****************************|\n\r");
     UART_write_string("|********************** Digital Mulitmeter ***************************|\n\r");
     UART_write_string("|_____________________________________________________________________|\n\r");
-    UART_write_string("|Frequency :       Hz                                                 |\n\r");
+    UART_write_string("|Frequency :       Hz                                          Valid  |\n\r");
+    UART_write_string("|Vp-p      :       V                                                  |\n\r");
     UART_write_string("|Max. Val  :       V                                                  |\n\r");
     UART_write_string("|Min. Val  :       V                                                  |\n\r");
     UART_write_string("|RMS       : 3.300 V  |-----------------------------------|           |\n\r");
@@ -188,12 +214,28 @@ void set_voltage_bars(uint16_t voltage)
 {
     //variable initialization
     uint8_t num = voltage/100;
-    uint8_t i;
+    uint8_t bar = 0;
+    uint8_t dash = 0;
 
-    UART_write_string(COLOR_FOREGROUND_RED);    //character color set to RED
-    for(i = 0; i < num; i++)
-        UART_write_string("]");                 //print characters
-    UART_write_string(COLOR_FOREGROUND_WHITE);  //reset character color to white
+        //character color set to RED
+
+    if(num < 35)
+    {
+        UART_write_string(COLOR_FOREGROUND_RED);
+        while(bar < num)
+        {
+            UART_write_string("]");                 //print bars
+            bar++;
+            dash++;
+        }
+        UART_write_string(COLOR_FOREGROUND_WHITE);
+        while(dash < 35)
+        {
+            UART_write_string("-");
+            dash++;
+        }
+    }
+    UART_write_string(COLOR_FOREGROUND_WHITE);      //reset character color to white
     return;
 }
 
@@ -208,11 +250,17 @@ void set_voltage_bars(uint16_t voltage)
  */
 void update_display(uint16_t FREQ, uint16_t MAX, uint16_t MIN, uint16_t RMS, uint16_t DC)
 {
+    check_valid( FREQ, MAX, MIN, RMS, DC);
+
     //In the following code segment, the cursor position is set for each measurement and then
     //the measurement is updated.
     UART_write_string(CURSOR_HOME);
     UART_write_string(CURSOR_POSITION_FREQ);
     freq_to_console(FREQ);
+
+    UART_write_string(CURSOR_HOME);
+    UART_write_string(CURSOR_POSITION_VPP);
+    voltage_to_console((MAX-MIN));
 
     UART_write_string(CURSOR_HOME);
     UART_write_string(CURSOR_POSITION_MAX);
@@ -234,6 +282,6 @@ void update_display(uint16_t FREQ, uint16_t MAX, uint16_t MIN, uint16_t RMS, uin
     voltage_to_console(DC);
     UART_write_string(CURSOR_HOME);
     UART_write_string(CURSOR_POSITION_DC_BAR);
-    set_voltage_bars(RMS);
+    set_voltage_bars(DC);
     return;
 }
