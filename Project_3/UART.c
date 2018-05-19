@@ -1,4 +1,5 @@
 #include "UART.h"
+#include "dmm_functions.h"
 
 /*
  * Function that sends a string to the console
@@ -22,13 +23,14 @@ void check_valid(uint16_t FREQ, uint16_t MAX, uint16_t MIN, uint16_t RMS, uint16
     UART_write_string(CURSOR_HOME);
     UART_write_string(CURSOR_POSITION_VALID);
 
-    if(FREQ > 1000)
+
+    if(FREQ > 1000 && FREQ != 0XFFFF)
         UART_write_string(COLOR_BACKGROUND_RED);
-    else if(MAX > 3300)
+    else if(MAX > 3300 && MAX != 0XFFFF)
         UART_write_string(COLOR_BACKGROUND_RED);
-    else if(MIN > 3300)
+    else if(MIN > 3300 && MIN != 0XFFFF)
         UART_write_string(COLOR_BACKGROUND_RED);
-    else if(RMS > 3300)
+    else if(RMS > 3300 && RMS != 0XFFFF)
         UART_write_string(COLOR_BACKGROUND_RED);
     else if(DC > 3300)
         UART_write_string(COLOR_BACKGROUND_RED);
@@ -51,7 +53,6 @@ void UART_init(void){
     //GPIO settings: P1.2 RX, P1.3 TX
     P1 -> SEL0 |=  (BIT2 | BIT3);
     P1 -> SEL1 &= ~(BIT2 | BIT3);
-
 
     EUSCI_A0 -> CTLW0 |= EUSCI_A_CTLW0_SWRST;               //hold in reset state
     EUSCI_A0 -> CTLW0 |= EUSCI_A_CTLW0_SSEL__SMCLK       |  //set SMCLK as source
@@ -145,6 +146,15 @@ void voltage_to_console(uint16_t voltage)
         }
     }
     //print voltage on console
+    if (voltage == 0xFFFF)
+    {
+        voltage_string[0] = '-';
+        voltage_string[1] = '-';
+        voltage_string[2] = '-';
+        voltage_string[3] = '-';
+        voltage_string[4] = '-';
+        voltage_string[5] = '\0';
+    }
     UART_write_string(voltage_string);
     return;
 }
@@ -192,6 +202,14 @@ void freq_to_console(uint16_t frequency)
         frequency_string[2] = ' ';
     }
 
+    if (frequency == 0xFFFF)
+    {
+        frequency_string[0] = '-';
+        frequency_string[1] = '-';
+        frequency_string[2] = '-';
+        frequency_string[3] = '-';
+        frequency_string[4] = '\0';
+    }
     //print frequency on console
     UART_write_string(frequency_string);
     return;
@@ -212,6 +230,10 @@ void set_voltage_bars(uint16_t voltage)
     uint8_t dash = 0;
 
         //character color set to RED
+    if (voltage == 0xFFFF)
+    {
+        num = 0;
+    }
 
     if(num < 35)
     {
@@ -244,7 +266,12 @@ void set_voltage_bars(uint16_t voltage)
  */
 void update_display(uint16_t FREQ, uint16_t MAX, uint16_t MIN, uint16_t RMS, uint16_t DC)
 {
-    check_valid( FREQ, MAX, MIN, RMS, DC);
+    float max_tune_factor = 0.985;
+    float min_tune_factor = 0.94;
+    float dc_tune_factor = 0.9843;
+
+    check_valid(FREQ, MAX, MIN, RMS, DC);
+
 
     //In the following code segment, the cursor position is set for each measurement and then
     //the measurement is updated.
@@ -254,16 +281,24 @@ void update_display(uint16_t FREQ, uint16_t MAX, uint16_t MIN, uint16_t RMS, uin
 
     UART_write_string(CURSOR_HOME);
     UART_write_string(CURSOR_POSITION_VPP);
-    voltage_to_console((MAX-MIN));
+    if(MAX == 0xFFFF)
+        voltage_to_console(0xFFFF);
+    else
+        voltage_to_console((MAX*max_tune_factor-MIN*min_tune_factor));
 
     UART_write_string(CURSOR_HOME);
     UART_write_string(CURSOR_POSITION_MAX);
-    voltage_to_console(MAX);
+    if (MAX != 0xFFFF)
+        voltage_to_console(MAX*max_tune_factor);
+    else
+        voltage_to_console(MAX);
 
     UART_write_string(CURSOR_HOME);
     UART_write_string(CURSOR_POSITION_MIN);
-    voltage_to_console(MIN);
-
+    if (MIN != 0xFFFF)
+        voltage_to_console(MIN*min_tune_factor);
+    else
+        voltage_to_console(MIN);
     UART_write_string(CURSOR_HOME);
     UART_write_string(CURSOR_POSITION_RMS);
     voltage_to_console(RMS);
@@ -271,11 +306,12 @@ void update_display(uint16_t FREQ, uint16_t MAX, uint16_t MIN, uint16_t RMS, uin
     UART_write_string(CURSOR_POSITION_RMS_BAR);
     set_voltage_bars(RMS);
 
+
     UART_write_string(CURSOR_HOME);
     UART_write_string(CURSOR_POSITION_DC);
-    voltage_to_console(DC);
+    voltage_to_console(DC*dc_tune_factor);
     UART_write_string(CURSOR_HOME);
     UART_write_string(CURSOR_POSITION_DC_BAR);
-    set_voltage_bars(DC);
+    set_voltage_bars(DC*dc_tune_factor);
     return;
 }

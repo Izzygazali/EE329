@@ -7,6 +7,7 @@
 //BIT 2 -> Sampling Done
 //BIT 3 -> Calculation Done
 //BIT 4 -> Results displayed
+//BIT 5 -> DC flag
 volatile uint16_t dmm_flags = 0;
 
 //variables for DC Offset
@@ -67,22 +68,6 @@ void init_clock(void)
     return;
 }
 
-/*void set_clock_slow(void)
-{
-    CS ->KEY = CS_KEY_VAL;
-    CS->CTL1 &= ~CS_CTL1_DIVA_MASK;
-    CS->CTL1 |= CS_CTL1_DIVA_2;
-    CS ->KEY = 0;
-    return;
-}
-void set_clock_fast(void)
-{
-    CS ->KEY = CS_KEY_VAL;
-    CS->CTL1 &= ~CS_CTL1_DIVA_MASK;
-    CS->CTL1 |=  CS_CTL1_DIVA_0;
-    CS ->KEY = 0;
-    return;
-}*/
 
 //-------------------------------------------------------------------------------------------------
 //--------------------------------Functions for DC Offset------------------------------------------
@@ -255,7 +240,13 @@ void init_sample_timer(uint16_t freq)
     //determine count for 6MHz clock timer
     //(assuming wave is less than 500Hz)
     uint16_t CCR0_count;
-    CCR0_count = 6000000/(100*freq);
+
+    if (get_dmm_flags() & dc_flag_set){
+        CCR0_count = 120;
+    }else{
+        CCR0_count = 6000000/(100*freq);
+    }
+
     //clear TIMER CTL register
     TIMER_A0->CTL = 0;
     if (freq >= 500){

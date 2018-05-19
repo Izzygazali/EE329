@@ -31,7 +31,7 @@ enum event_type event;
 
 void DMM_state_decode(void)
 {
-    uint16_t curr_flags = get_dmm_flags();
+    uint16_t curr_flags = get_dmm_flags() & ~dc_flag_set;
     switch(curr_flags)
     {
         case dc_offset_flag:
@@ -67,10 +67,19 @@ void dc_offset_logic(void)
 
 void wave_freq_logic(void)
 {
+    uint32_t timeout_count = 0;
     set_freq_slow();
     set_freq_conversion(32000);
     init_freq_timer();
-    while((get_dmm_flags() & wave_freq_flag) == 0);
+    while((get_dmm_flags() & wave_freq_flag) == 0){
+        timeout_count++;
+        if (timeout_count > 5000000)
+        {
+            set_dmm_flags(dc_flag_set | wave_freq_flag);
+            NVIC->ICER[0] = 1 << ((TA0_N_IRQn) & 31);
+            return;
+        }
+    }
     NVIC->ICER[0] = 1 << ((TA0_N_IRQn) & 31);
     if (get_captured_freq() > 100){
         reset_dmm_flags(wave_freq_flag);
@@ -99,6 +108,21 @@ void perform_calculations_logic(void)
     calc_sampled_rms();
     calc_sampled_DC();
     calc_max_min();
+    return;
+}
+
+void display_results_logic(void)
+{
+    if (get_dmm_flags() & dc_flag_set)
+    {
+        update_display(0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, get_sampled_DC());
+        set_dmm_flags(results_displayed_flag);
+        __delay_cycles(24000000);
+        return;
+    }
+    update_display(get_captured_freq(), get_max(), get_min(), get_sampled_rms(), get_sampled_DC());
+    set_dmm_flags(results_displayed_flag);
+    __delay_cycles(24000000);
     return;
 }
 
@@ -144,9 +168,7 @@ void DMM_FSM(void)
                 break;
             }
             //display results function
-            update_display(get_captured_freq(), get_max(), get_min(), get_sampled_rms(), get_sampled_DC());
-            set_dmm_flags(results_displayed_flag);
-            __delay_cycles(24000000);
+            display_results_logic();
             break;
         case reset_state:
             //reset variables
