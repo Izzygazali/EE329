@@ -17,13 +17,18 @@ void UART_write_string(char inputString[]){
     return;
 }
 
-
+/*
+ * Function that checks if the values from dmm_functions are likely valid
+ * INPUTS:      uint16_t FREQ, uint16_t MAX, uint16_t MIN, uint16_t RMS, uint16_t DC
+ * RETURN:      NONE
+ */
 void check_valid(uint16_t FREQ, uint16_t MAX, uint16_t MIN, uint16_t RMS, uint16_t DC)
 {
+    //set the cursor to the home position
     UART_write_string(CURSOR_HOME);
     UART_write_string(CURSOR_POSITION_VALID);
-
-
+    //if any values are outside of valid ranges set the invalid dot red
+    //otherwise it is green
     if(FREQ > 1000 && FREQ != 0XFFFF)
         UART_write_string(COLOR_BACKGROUND_RED);
     else if(MAX > 3300 && MAX != 0XFFFF)
@@ -36,10 +41,8 @@ void check_valid(uint16_t FREQ, uint16_t MAX, uint16_t MIN, uint16_t RMS, uint16
         UART_write_string(COLOR_BACKGROUND_RED);
     else
         UART_write_string(COLOR_BACKGROUND_GREEN);
-
     UART_write_string(" ");
     UART_write_string(COLOR_BACKGROUND_BLACK);
-
     return;
 }
 
@@ -266,47 +269,49 @@ void set_voltage_bars(uint16_t voltage)
  */
 void update_display(uint16_t FREQ, uint16_t MAX, uint16_t MIN, uint16_t RMS, uint16_t DC)
 {
+    //define tuning factors for different voltage values
     float max_tune_factor = 0.985;
     float min_tune_factor = 0.94;
     float dc_tune_factor = 0.9843;
-
+    //check if the input data is valid
     check_valid(FREQ, MAX, MIN, RMS, DC);
-
-
     //In the following code segment, the cursor position is set for each measurement and then
     //the measurement is updated.
     UART_write_string(CURSOR_HOME);
     UART_write_string(CURSOR_POSITION_FREQ);
     freq_to_console(FREQ);
-
+    
+    //if DC mode write "----" to Vp-p otherwise print normally
     UART_write_string(CURSOR_HOME);
     UART_write_string(CURSOR_POSITION_VPP);
     if(MAX == 0xFFFF)
         voltage_to_console(0xFFFF);
     else
         voltage_to_console((MAX*max_tune_factor-MIN*min_tune_factor));
-
+    
+    //if DC mode write "----" to MAX otherwise print normally
     UART_write_string(CURSOR_HOME);
     UART_write_string(CURSOR_POSITION_MAX);
     if (MAX != 0xFFFF)
         voltage_to_console(MAX*max_tune_factor);
     else
         voltage_to_console(MAX);
-
+    
+    //if DC mode write "----" to MIN otherwise print normally
     UART_write_string(CURSOR_HOME);
     UART_write_string(CURSOR_POSITION_MIN);
     if (MIN != 0xFFFF)
         voltage_to_console(MIN*min_tune_factor);
     else
         voltage_to_console(MIN);
+    //write updated RMS value to console
     UART_write_string(CURSOR_HOME);
     UART_write_string(CURSOR_POSITION_RMS);
     voltage_to_console(RMS);
     UART_write_string(CURSOR_HOME);
     UART_write_string(CURSOR_POSITION_RMS_BAR);
     set_voltage_bars(RMS);
-
-
+    //write updated DC value to console
     UART_write_string(CURSOR_HOME);
     UART_write_string(CURSOR_POSITION_DC);
     voltage_to_console(DC*dc_tune_factor);
