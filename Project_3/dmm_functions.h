@@ -3,17 +3,15 @@
 #include <stdlib.h>
 #include <math.h>
 
-//inputs defined
+//Define Values for Inputs for DMM
 #define PEAK_RESET BIT0
 #define VALLEY_RESET BIT1
 #define PEAK BIT2
 #define VALLEY BIT5
-
-
 #define INPUT_FREQ BIT5
 #define INPUT_WAVE BIT4
 
-//flag bits defined
+//Bits of the DMM flag variable defined
 #define dc_offset_flag BIT0
 #define wave_freq_flag BIT1
 #define sampling_done_flag BIT2
@@ -21,7 +19,7 @@
 #define results_displayed_flag BIT4
 #define dc_flag_set BIT5
 
-
+//define conversion factor between ADC values and volts for display
 #define volt_conv_factor 0.201416
 //-------------------------------------------------------------------------------------------------
 //--------------------------------Functions for All Parts------------------------------------------
