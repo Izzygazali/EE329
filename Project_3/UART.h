@@ -1,5 +1,6 @@
 #include "msp.h"
 
+//define string codes for various UART commands
 #define CLEAR_SCREEN            "\x1B[2K"
 #define CURSOR_HOME             "\x1B[H"
 #define CURSOR_POSITION_FREQ    "\x1B[5;15H"
