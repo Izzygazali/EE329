@@ -51,9 +51,11 @@ void EUSCIA2_IRQHandler(void)
     if (EUSCI_A2->IFG & EUSCI_A_IFG_RXIFG)
     {
         int_gps_char = EUSCI_A2->RXBUF;
-        if (int_gps_char == 0x62 && prev_gps_char == 0xB5)
+        if (int_gps_char == 0x62 && prev_gps_char == 0xB5){
             class_id_index = 0;
-        stored_GPS_transmission[class_id_index]
+        }
+        stored_GPS_transmission[class_id_index];
+        class_id_index++;
         prev_gps_char = int_gps_char;
     }
 }
