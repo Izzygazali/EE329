@@ -6,9 +6,7 @@
 #define TX BIT3
 
 /*Define functions implemented in DAC.c*/
-void init_UART(void);
-uint8_t get_value_flag(void);
-uint16_t get_uart_value(void);
-void reset_value_flag(void);
-
-
+uint8_t get_gps_char(void);
+uint16_t get_gps_flag(void);
+void reset_gps_flag(void);
+void init_GPS(void);
