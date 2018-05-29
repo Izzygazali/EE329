@@ -2,22 +2,28 @@
 
 #define reset_flag BIT0
 #define cap_payload_flag BIT1
-
+#define cap_parsed_flag BIT2
 
 //bit 0 - hold in reset
 //bit 1 - captured payload
+//bit 2 - payload parsed
+//helper variables for getting gps data
 volatile uint16_t gps_flags = 0;
-
 volatile uint16_t gps_payload[100];
+volatile int16_t payload_size = 0;
 uint16_t gps_payload_index = 0;
-volatile uint16_t payload_size = 0;
 volatile uint8_t  curr_gps_byte = 0;
+
+//variables used for parsing
 uint8_t class = 0;
 uint8_t id = 0;
+uint32_t curr_lat = 0;
+uint32_t curr_lon = 0;
+uint32_t curr_tow = 0;
 
+uint32_t classid;
 enum event_type{
-    reset,
-    captured_payload
+    reset
 };
 
 enum event_type event;
@@ -30,7 +36,8 @@ enum state_type{
     get_ID,
     get_length_1,
     get_length_2,
-    get_payload
+    get_payload,
+    parse_payload
 };
 
 
@@ -46,15 +53,21 @@ void reset_gps_flags(void)
 }
 
 
-void gps_state_decode(void)
+
+
+
+void gps_parse_logic(void)
 {
-    switch(gps_flags)
+    switch((class << 8) | id)
     {
-        case reset_flag:
-            event = reset;
+        case 0x0102:
+            curr_lon = (gps_payload[7] << 24)| (gps_payload[6] << 16) | (gps_payload[5] << 8) | gps_payload[4];
+            curr_lat = (gps_payload[11] << 24)| (gps_payload[10] << 16) | (gps_payload[9] << 8) | gps_payload[8];
+            curr_tow = (gps_payload[3] << 24)| (gps_payload[2] << 16) | (gps_payload[1] << 8) | gps_payload[0];
+            gps_flags |= cap_parsed_flag;
             break;
-        case cap_payload_flag:
-            event = captured_payload;
+        default:
+            gps_flags |= cap_parsed_flag;
             break;
     }
     return;
@@ -63,8 +76,7 @@ void gps_state_decode(void)
 void gps_FSM(void)
 {
     static enum state_type state = get_sync_1;
-    static uint8_t class = 0;
-    static uint8_t id = 0;
+
 
     switch(state)
     {
@@ -98,23 +110,18 @@ void gps_FSM(void)
         case get_length_2:
             payload_size |= (curr_gps_byte << 8);
             state = get_payload;
-
             gps_payload_index = 0;
             break;
         case get_payload:
-            if (gps_flags & cap_payload_flag){
-                state = get_sync_1;
-                if (id == 0x02){
-                  state = get_sync_1;
-              }
-                gps_flags &= ~cap_payload_flag;
-            }
             gps_payload[gps_payload_index] = curr_gps_byte;
             gps_payload_index++;
             payload_size--;
-            if (payload_size == 0)
-                gps_flags |= cap_payload_flag;
-                //gps_payload[gps_payload_index+1] = 0xFFFF;
+            if (payload_size <= 0)
+                state = parse_payload;
+            break;
+        case parse_payload:
+            gps_parse_logic();
+            state = get_sync_1;
             break;
         default:
             state = get_sync_1;
@@ -163,7 +170,6 @@ void EUSCIA2_IRQHandler(void)
     if (EUSCI_A2->IFG & EUSCI_A_IFG_RXIFG)
     {
         curr_gps_byte = EUSCI_A2->RXBUF;
-        gps_state_decode();
         gps_FSM();
     }
 }
