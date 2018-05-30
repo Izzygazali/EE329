@@ -14,7 +14,6 @@
  */
 #include "msp.h"
 
-
 //define some useful constants used in keypad.c
 #define ROW1 BIT4
 #define ROW2 BIT5

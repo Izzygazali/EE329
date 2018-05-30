@@ -3,18 +3,35 @@
  */
 #include "keypad.h"
 
-uint8_t flags = 0;
-uint8_t input = 0;
+//variable definitions
+uint8_t flags = 0;          //set when a input is entered on the keypad
+uint8_t input = 0;          //value of the key pressed on keypad
 
+/*
+ * Function that returns the value of the input entered on the keypad
+ * Inputs       NONE
+ * Return       uint8_t input
+ */
 uint8_t get_input(void)
 {
     return input;
 }
 
+/*
+ * Function that returns the value of the flags variable
+ * Inputs       NONE
+ * Return       uint8_t flags
+ */
 uint8_t get_flags(void)
 {
     return flags;
 }
+
+/*
+ * Function that sets the value of the flags variable
+ * Inputs       uint8_t num = value to set flags to
+ * Return       NONE
+ */
 void set_flags(uint8_t num)
 {
     flags = num;

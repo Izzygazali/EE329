@@ -3,6 +3,8 @@
 
 #define MPL3115A2_ADDRESS     0x60
 #define CTRL_REG1             0x26
+#define BAR_IN_MSB            0x14
+#define BAR_IN_LSB            0x15
 #define ALT                   0X80
 #define OSR_OFFSET            0x03
 #define PT_DATA_CFG           0x13
@@ -18,6 +20,43 @@ void WriteMPL3115A2(uint8_t MemAddress, uint8_t MemByte);
 uint8_t ReadMPL3115A2(uint8_t MemAddress);
 
 uint16_t TransmitFlag = 0;
+
+void set_sea_pressure(float pascal){
+    uint16_t bar = pascal/2;
+    WriteMPL3115A2(BAR_IN_MSB, bar>>8);
+    __delay_cycles(3000);
+    WriteMPL3115A2(BAR_IN_LSB, bar);
+    __delay_cycles(3000);
+    return;
+}
+
+
+float get_altitude(){
+    int32_t alt;
+
+    uint16_t x = (0xB9 | 0x02);
+
+    while(ReadMPL3115A2(CTRL_REG1) & 0x02);
+    __delay_cycles(3000);
+
+    WriteMPL3115A2(CTRL_REG1, x);
+    __delay_cycles(3000);
+
+    uint8_t sta = 0;
+    while(0x00 == (sta & 0x02)){
+        sta = ReadMPL3115A2(0x00);
+        __delay_cycles(3000);
+    }
+
+    alt = (ReadMPL3115A2(0x01))<<24;
+    alt |= (ReadMPL3115A2(0x02))<<16;
+    alt |= (ReadMPL3115A2(0x03))<<8;
+
+    float altitude = alt;
+    altitude /= 65536.0;
+    return altitude;
+}
+
 
 float get_temperature(void){
    int16_t t;
@@ -66,6 +105,9 @@ int main(void)
     __delay_cycles(3000);
 
     float temp = get_temperature();
+    set_sea_pressure(101280);
+    float altitude = get_altitude();
+
     while(1);
 }
 
