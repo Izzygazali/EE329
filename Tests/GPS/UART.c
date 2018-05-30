@@ -20,6 +20,8 @@ uint8_t id = 0;
 uint32_t curr_lat = 0;
 uint32_t curr_lon = 0;
 uint32_t curr_tow = 0;
+uint32_t curr_dist = 0;
+
 
 uint32_t classid;
 enum event_type{
@@ -41,7 +43,6 @@ enum state_type{
 };
 
 
-
 uint16_t get_gps_flags(void)
 {
     return gps_flags;
@@ -53,7 +54,23 @@ void reset_gps_flags(void)
 }
 
 
-
+void reset_gps_odometer(void)
+{
+    while(!(EUSCI_A2->IFG & EUSCI_A_IFG_TXIFG));
+    EUSCI_A2->TXBUF = 0xFF;
+    __delay_cycles(12000000);
+    while(!(EUSCI_A2->IFG & EUSCI_A_IFG_TXIFG));
+    EUSCI_A2->TXBUF = 0xB5;
+    while(!(EUSCI_A2->IFG & EUSCI_A_IFG_TXIFG));
+    EUSCI_A2->TXBUF = 0x62;
+    while(!(EUSCI_A2->IFG & EUSCI_A_IFG_TXIFG));
+    EUSCI_A2->TXBUF = 0x01;
+    while(!(EUSCI_A2->IFG & EUSCI_A_IFG_TXIFG));
+    EUSCI_A2->TXBUF = 0x10;
+    while(!(EUSCI_A2->IFG & EUSCI_A_IFG_TXIFG));
+    EUSCI_A2->TXBUF = 0x00;
+    return;
+}
 
 
 void gps_parse_logic(void)
@@ -64,10 +81,15 @@ void gps_parse_logic(void)
             curr_lon = (gps_payload[7] << 24)| (gps_payload[6] << 16) | (gps_payload[5] << 8) | gps_payload[4];
             curr_lat = (gps_payload[11] << 24)| (gps_payload[10] << 16) | (gps_payload[9] << 8) | gps_payload[8];
             curr_tow = (gps_payload[3] << 24)| (gps_payload[2] << 16) | (gps_payload[1] << 8) | gps_payload[0];
-            gps_flags |= cap_parsed_flag;
             break;
+        case 0x0109:
+            curr_dist = (gps_payload[11] << 24)| (gps_payload[10] << 16) | (gps_payload[9] << 8) | gps_payload[8];
+            break;
+        case 0x0501:
+            event = reset;
+        case 0x0500:
+             event = reset;
         default:
-            gps_flags |= cap_parsed_flag;
             break;
     }
     return;
@@ -155,8 +177,8 @@ void init_GPS(void)
     EUSCI_A2->IFG &= ~EUSCI_A_IFG_RXIFG;
     EUSCI_A2->IE |= EUSCI_A_IE_RXIE;
     //enable interrupts for UART A0 on NVIC and globally
-    NVIC->ISER[0] = 1 << ((EUSCIA2_IRQn) & 31);
     __enable_irq();
+    NVIC->ISER[0] = 1 << ((EUSCIA2_IRQn) & 31);
     return;
 }
 

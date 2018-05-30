@@ -11,3 +11,4 @@ void reset_gps_flags(void);
 void gps_state_decode(void);
 void gps_FSM(void);
 void init_GPS(void);
+void reset_gps_odometer(void);
