@@ -1,36 +1,35 @@
 #include "UART.h"
 
-#define reset_flag BIT0
-#define cap_payload_flag BIT1
-#define cap_parsed_flag BIT2
 
-//bit 0 - hold in reset
-//bit 1 - captured payload
-//bit 2 - payload parsed
-//helper variables for getting gps data
+
+//flags for indicating gps operation state
+//bit 0 - data valid
+//bit 1 - new data received
 volatile uint16_t gps_flags = 0;
-volatile uint16_t gps_payload[100];
-volatile int16_t payload_size = 0;
+
+//code segment to send to gps to reset odometer
+const uint8_t odo_reset[] = {
+     0xB5, 0x62, 0x01, 0x10, 0x00, 0x00, 0x11, 0x34
+};
+
+//helper variables for getting gps data
+volatile uint16_t gps_payload[200];
 uint16_t gps_payload_index = 0;
+volatile int16_t payload_size = 0;
 volatile uint8_t  curr_gps_byte = 0;
 
-//variables used for parsing
+//variables used for identifying data segment to parse
 uint8_t class = 0;
 uint8_t id = 0;
+uint32_t classid;
+
+//variables to store current data
 uint32_t curr_lat = 0;
 uint32_t curr_lon = 0;
 uint32_t curr_tow = 0;
 uint32_t curr_dist = 0;
 
-
-uint32_t classid;
-enum event_type{
-    reset
-};
-
-enum event_type event;
-
-
+//states used to parse gps data
 enum state_type{
     get_sync_1,
     get_sync_2,
@@ -48,27 +47,42 @@ uint16_t get_gps_flags(void)
     return gps_flags;
 }
 
-void reset_gps_flags(void)
+void reset_gps_flags(uint16_t flags)
 {
-    gps_flags = 0;
+    gps_flags &= ~flags;
+    return;
 }
 
+uint32_t get_curr_lat(void)
+{
+    return curr_lat;
+}
+
+uint32_t get_curr_lon(void)
+{
+    return curr_lon;
+}
+
+uint32_t get_curr_tow(void)
+{
+    return curr_tow;
+}
+
+uint32_t get_curr_dist(void)
+{
+    return curr_dist;
+}
 
 void reset_gps_odometer(void)
 {
+    uint8_t reset_index;
     while(!(EUSCI_A2->IFG & EUSCI_A_IFG_TXIFG));
     EUSCI_A2->TXBUF = 0xFF;
     __delay_cycles(12000000);
-    while(!(EUSCI_A2->IFG & EUSCI_A_IFG_TXIFG));
-    EUSCI_A2->TXBUF = 0xB5;
-    while(!(EUSCI_A2->IFG & EUSCI_A_IFG_TXIFG));
-    EUSCI_A2->TXBUF = 0x62;
-    while(!(EUSCI_A2->IFG & EUSCI_A_IFG_TXIFG));
-    EUSCI_A2->TXBUF = 0x01;
-    while(!(EUSCI_A2->IFG & EUSCI_A_IFG_TXIFG));
-    EUSCI_A2->TXBUF = 0x10;
-    while(!(EUSCI_A2->IFG & EUSCI_A_IFG_TXIFG));
-    EUSCI_A2->TXBUF = 0x00;
+    for (reset_index = 0; reset_index <= 7; reset_index++){
+        while(!(EUSCI_A2->IFG & EUSCI_A_IFG_TXIFG));
+        EUSCI_A2->TXBUF = odo_reset[reset_index];
+    }
     return;
 }
 
@@ -77,19 +91,22 @@ void gps_parse_logic(void)
 {
     switch((class << 8) | id)
     {
+        //class, id indicates a NAV message with lat, lon, and tow
         case 0x0102:
             curr_lon = (gps_payload[7] << 24)| (gps_payload[6] << 16) | (gps_payload[5] << 8) | gps_payload[4];
-            curr_lat = (gps_payload[11] << 24)| (gps_payload[10] << 16) | (gps_payload[9] << 8) | gps_payload[8];
+            curr_lat = (gps_payload[11]<< 24)| (gps_payload[10] << 16)| (gps_payload[9] << 8) | gps_payload[8];
             curr_tow = (gps_payload[3] << 24)| (gps_payload[2] << 16) | (gps_payload[1] << 8) | gps_payload[0];
+            gps_flags |= new_data_flag;
             break;
+        //class, id indicates a NAV message with the odometer data
         case 0x0109:
             curr_dist = (gps_payload[11] << 24)| (gps_payload[10] << 16) | (gps_payload[9] << 8) | gps_payload[8];
             break;
-        case 0x0501:
-            event = reset;
         case 0x0500:
-             event = reset;
-        default:
+            gps_flags &= ~gps_ack_flag;
+            break;
+        case 0x0501:
+            gps_flags |= gps_ack_flag;
             break;
     }
     return;
@@ -98,8 +115,6 @@ void gps_parse_logic(void)
 void gps_FSM(void)
 {
     static enum state_type state = get_sync_1;
-
-
     switch(state)
     {
         case get_sync_1:
@@ -135,10 +150,14 @@ void gps_FSM(void)
             gps_payload_index = 0;
             break;
         case get_payload:
+            if (gps_payload_index >= 200){
+                state = parse_payload;
+                break;
+            }
             gps_payload[gps_payload_index] = curr_gps_byte;
             gps_payload_index++;
             payload_size--;
-            if (payload_size <= 0)
+            if (payload_size < 0)
                 state = parse_payload;
             break;
         case parse_payload:
@@ -181,11 +200,6 @@ void init_GPS(void)
     NVIC->ISER[0] = 1 << ((EUSCIA2_IRQn) & 31);
     return;
 }
-
-
-
-
-
 
 void EUSCIA2_IRQHandler(void)
 {
