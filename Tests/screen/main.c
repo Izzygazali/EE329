@@ -16,18 +16,36 @@ enum state_type{
     hiking_display,
     data_display,
     location_display,
-    settings_display
 };
 
+enum state_type state = hiking_display;
+
+void lcd_state_decode(void)
+{
+    switch(event){
+        case up_pressed:
+            switch(state){
+                case hiking_display:
+
+            }
+    }
+    return;
+}
 void lcd_FSM(void)
 {
-    static enum state_type state = hiking_display;
     switch(state)
     {
         case hiking_display:
             break;
-
+        case data_display:
+            break;
+        case location_display:
+            break;
+        default:
+            state = hiking_display;
+            break;
     }
+    return;
 }
 
 
