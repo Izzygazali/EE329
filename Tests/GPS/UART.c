@@ -28,6 +28,13 @@ uint32_t curr_lat = 0;
 uint32_t curr_lon = 0;
 uint32_t curr_tow = 0;
 uint32_t curr_dist = 0;
+uint16_t curr_year = 0;
+uint8_t  curr_month = 0;
+uint8_t  curr_day = 0;
+uint8_t  curr_hour = 0;
+uint8_t  curr_minute = 0;
+uint8_t  curr_second = 0;
+
 
 //states used to parse gps data
 enum state_type{
@@ -46,31 +53,50 @@ uint16_t get_gps_flags(void)
 {
     return gps_flags;
 }
-
 void reset_gps_flags(uint16_t flags)
 {
     gps_flags &= ~flags;
     return;
 }
-
 uint32_t get_curr_lat(void)
 {
     return curr_lat;
 }
-
 uint32_t get_curr_lon(void)
 {
     return curr_lon;
 }
-
 uint32_t get_curr_tow(void)
 {
     return curr_tow;
 }
-
 uint32_t get_curr_dist(void)
 {
-    return curr_dist;
+   return curr_dist;
+}
+uint16_t get_curr_year(void)
+{
+   return curr_year;
+}
+uint8_t get_curr_month(void)
+{
+   return curr_month;
+}
+uint8_t get_curr_day(void)
+{
+   return curr_day;
+}
+uint8_t get_curr_hour(void)
+{
+   return curr_hour;
+}
+uint8_t get_curr_minute(void)
+{
+   return curr_minute;
+}
+uint8_t get_curr_second(void)
+{
+   return curr_second;
 }
 
 void reset_gps_odometer(void)
@@ -101,6 +127,16 @@ void gps_parse_logic(void)
         //class, id indicates a NAV message with the odometer data
         case 0x0109:
             curr_dist = (gps_payload[11] << 24)| (gps_payload[10] << 16) | (gps_payload[9] << 8) | gps_payload[8];
+            gps_flags |= new_data_flag;
+            break;
+        case 0x0121:
+            curr_year = (gps_payload[13] << 8) | (gps_payload[12]);
+            curr_month = gps_payload[14];
+            curr_day = gps_payload[15];
+            curr_hour = gps_payload[16] - 7; //conversion from UTC to PST
+            curr_minute = gps_payload[17];
+            curr_second = gps_payload[18];
+            gps_flags |= new_data_flag;
             break;
         case 0x0500:
             gps_flags &= ~gps_ack_flag;

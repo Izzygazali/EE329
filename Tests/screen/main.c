@@ -1,24 +1,25 @@
-#include "msp.h"
+#include "msp.h        "
 #include "LCD.h"
 #include "delay.h"
 
 #define lcd_screen_flag BIT0
-#define lcd_data_flag BIT1
-#define lcd_enter_flag BIT2
+#define lcd_enter_flag BIT1
 
 #define button_up BIT4
 #define button_down BIT5
 #define button_enter BIT6
 
 //bit 0 - "redraw" screen flag
-//bit 1 - "redraw" data flag
-//bit 2 - enter key flag
+//bit 1 - enter key flag
 uint16_t lcd_flags = 0x0003;
 //0 -> run
 //1 -> pause
 //2 -> stop
 uint8_t run_state = 0;
-
+char *time_elapsed = "12:33";
+char *time_pace = "12:22";
+char *curr_dist = "999.99";
+//char *curr_date = ""
 
 enum event_type{
     up_pressed,
@@ -30,8 +31,10 @@ enum event_type event = nothing_pressed;
 
 enum state_type{
     hiking_display,
-    data_display,
-    location_display
+    data_1,
+    data_2,
+    data_3,
+    data_4
 };
 
 enum state_type state = hiking_display;
@@ -42,7 +45,7 @@ void lcd_state_decode(void)
         case up_pressed:
             if ((lcd_flags & lcd_enter_flag) == 0){
                 if (state == 0)
-                    state = location_display;
+                    state = data_4;
                 else
                     state--;
                 lcd_flags |= lcd_screen_flag;
@@ -84,9 +87,7 @@ void lcd_state_decode(void)
 }
 void lcd_FSM(void)
 {
-    char *time_elapsed = "12:33";
-    char *time_pace = "12:22";
-    char *curr_dist = "999.99";
+
 
     switch(state)
     {
@@ -118,9 +119,6 @@ void lcd_FSM(void)
                 WRITE_STR_LCD("*");
                 lcd_flags &= ~lcd_screen_flag;
             }
-            if (lcd_flags & lcd_data_flag){
-
-            }
             if (lcd_flags & lcd_enter_flag){
                 switch(run_state)
                 {
@@ -136,19 +134,36 @@ void lcd_FSM(void)
                 }
             }
             break;
-        case data_display:
+        case data_1:
             if (lcd_flags & lcd_screen_flag){
                 LCD_HOME();
                 LCD_CLR();
-                WRITE_STR_LCD("2");
+                WRITE_STR_LCD("Date: ");
+                WRITE_STR_LCD("Date: ");
                 lcd_flags &= ~lcd_screen_flag;
             }
+
             break;
-        case location_display:
+        case data_2:
             if (lcd_flags & lcd_screen_flag){
                 LCD_HOME();
                 LCD_CLR();
                 WRITE_STR_LCD("3");
+                lcd_flags &= ~lcd_screen_flag;
+            }
+            break;
+        case data_3:
+            if (lcd_flags & lcd_screen_flag){
+                LCD_HOME();
+                LCD_CLR();
+                WRITE_STR_LCD("4");
+                lcd_flags &= ~lcd_screen_flag;
+            }
+        case data_4:
+            if (lcd_flags & lcd_screen_flag){
+                LCD_HOME();
+                LCD_CLR();
+                WRITE_STR_LCD("5");
                 lcd_flags &= ~lcd_screen_flag;
             }
             break;
