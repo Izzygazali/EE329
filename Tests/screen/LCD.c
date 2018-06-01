@@ -152,8 +152,8 @@ void LCD_init(void){
     P4 ->OUT |= 0x20;
     NYBBLE();
     delay_ms(5,FREQ_3_MHz);
-    //Turn display on, enable cursor, and make it blink
-    LCD_COMMAND(0x0F);
+    //Turn display on, disable cursor, and no blink
+    LCD_COMMAND(0x0C);
     delay_us(100,FREQ_3_MHz);
     //Clear display
     LCD_COMMAND(0x01);
