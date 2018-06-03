@@ -19,13 +19,29 @@ int main (void)
 
 	f_mount(&FatFs, "", 0);		/* Give a work area to the default drive */
 
-	if (f_open(&Fil, "newfile.txt", FA_WRITE | FA_CREATE_ALWAYS) == FR_OK) {	/* Create a file */
+	if (f_open(&Fil, "duckfuck.gpx", FA_WRITE | FA_CREATE_ALWAYS) == FR_OK) {	/* Create a file */
 
-		f_write(&Fil, "It works!\r\n", 11, &bw);	/* Write data to the file */
+		f_write(&Fil, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\r \
+		               <gpx version=\"1.0\">\r\n \
+		               <name>Example gpx</name>\r\n \
+		               <wpt lat=\"46.57638889\" lon=\"8.89263889\">\r\n \
+		               <ele>2372</ele>\r\n \
+                       <name>LAGORETICO</name>\r\n \
+		               </wpt>\r\n \
+		               <trk><name>Example gpx</name><number>1</number><trkseg>\r\n \
+                       <trkpt lat=\"46.57608333\" lon=\"8.89241667\"><ele>2376</ele><time>2007-10-14T10:09:57Z</time></trkpt>\r\n \
+                       <trkpt lat=\"46.57619444\" lon=\"8.89252778\"><ele>2375</ele><time>2007-10-14T10:10:52Z</time></trkpt>\r\n \
+                       <trkpt lat=\"46.57641667\" lon=\"8.89266667\"><ele>2372</ele><time>2007-10-14T10:12:39Z</time></trkpt>\r\n \
+                       <trkpt lat=\"46.57650000\" lon=\"8.89280556\"><ele>2373</ele><time>2007-10-14T10:13:12Z</time></trkpt>\r\n \
+                       <trkpt lat=\"46.57638889\" lon=\"8.89302778\"><ele>2374</ele><time>2007-10-14T10:13:20Z</time></trkpt>\r\n \
+                       <trkpt lat=\"46.57652778\" lon=\"8.89322222\"><ele>2375</ele><time>2007-10-14T10:13:48Z</time></trkpt>\r\n \
+                       <trkpt lat=\"46.57661111\" lon=\"8.89344444\"><ele>2376</ele><time>2007-10-14T10:14:08Z</time></trkpt>\r\n \
+		               </trkseg></trk>\r\n \
+		               </gpx>\r\n", 1350, &bw);	/* Write data to the file */
 
 		f_close(&Fil);								/* Close the file */
 
-		if (bw == 11) {		/* Lights green LED if data written well */
+		if (bw == 15) {		/* Lights green LED if data written well */
 			P1->DIR |= BIT0;
 			P1->OUT |= BIT0;
 		}
