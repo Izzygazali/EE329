@@ -4,22 +4,50 @@
 
 #include <stdio.h>	/* Device specific declarations */
 #include "ff.h"		/* Declarations of FatFs API */
+
 #include "msp.h"
 #include "delay.h"
+#include "string.h"
 
 FATFS FatFs;		/* FatFs work area needed for each volume */
 FIL Fil;			/* File object needed for each open file */
 
+char * determine_file_name(void)
+{
+    char * file_to_create;
+    uint16_t file_number = 1;
+    FRESULT fr = FR_OK;
+    FILINFO fno;
+    while(fr == FR_OK){
+        sprintf(file_to_create, "log_%d.txt", file_number);
+        fr = f_stat(file_to_create, &fno);
+        file_number++;
+    }
+
+    return file_to_create;
+}
+int init_sd_card(void)
+{
+    char * file_to_create;
+    f_mount(&FatFs, "", 0);
+    file_to_create = determine_file_name();
+    if (f_open(&Fil, file_to_create, FA_WRITE | FA_CREATE_ALWAYS) == FR_OK)
+        return -1;
+    else
+        return 0;
+}
 
 int main (void)
 {
     set_DCO(FREQ_12_MHz);
-	UINT bw;
+    init_sd_card();
+    /*
+    UINT bw;
 
 
-	f_mount(&FatFs, "", 0);		/* Give a work area to the default drive */
+	f_mount(&FatFs, "", 0);		Give a work area to the default drive
 
-	if (f_open(&Fil, "duckfuck.gpx", FA_WRITE | FA_CREATE_ALWAYS) == FR_OK) {	/* Create a file */
+	if (f_open(&Fil, "duckfuck.gpx", FA_WRITE | FA_CREATE_ALWAYS) == FR_OK) {	 Create a file
 
 		f_write(&Fil, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\r \
 		               <gpx version=\"1.0\">\r\n \
@@ -37,15 +65,15 @@ int main (void)
                        <trkpt lat=\"46.57652778\" lon=\"8.89322222\"><ele>2375</ele><time>2007-10-14T10:13:48Z</time></trkpt>\r\n \
                        <trkpt lat=\"46.57661111\" lon=\"8.89344444\"><ele>2376</ele><time>2007-10-14T10:14:08Z</time></trkpt>\r\n \
 		               </trkseg></trk>\r\n \
-		               </gpx>\r\n", 1350, &bw);	/* Write data to the file */
+		               </gpx>\r\n", 1350, &bw);
 
-		f_close(&Fil);								/* Close the file */
+		f_close(&Fil);
 
-		if (bw == 15) {		/* Lights green LED if data written well */
+		if (bw == 15) {		 Lights green LED if data written well
 			P1->DIR |= BIT0;
 			P1->OUT |= BIT0;
 		}
-	}
+	}*/
 
 	for (;;) ;
 }
