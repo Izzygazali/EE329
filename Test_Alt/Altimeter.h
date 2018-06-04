@@ -38,6 +38,9 @@
 #define PT_DATA_CFG_PDEFE       0x02        //Data event flag for new pressure/altitude data
 #define PT_DATA_CFG_DREM        0x04        //Data ready event mode
 
+//number of cycles to delay for 1ms, 12MHz SMCLK
+#define CYCLES   12000
+
 //function prototypes
 void Init_I2C(uint8_t Device_Address);
 void Init_MPL3115A2(void);

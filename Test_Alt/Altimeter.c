@@ -4,6 +4,7 @@
 uint16_t TransmitFlag = 0;
 uint32_t REG1_CONTROL_WORD = 0;
 
+
 /*
  * Function that sets the local sea level barometric pressure
  * INPUTS       float pascal = the pressure to use as the baseline
@@ -13,9 +14,9 @@ void set_sea_pressure(float pascal)
 {
     uint16_t sea_level_pressure = pascal/2;             //Barometric input is in 2*Pa
     Write_MPL3115A2(BAR_IN_MSB, sea_level_pressure>>8); //write MSB to barometric input register
-    __delay_cycles(3000);                               //delay for write
+    __delay_cycles(CYCLES);                               //delay for write
     Write_MPL3115A2(BAR_IN_LSB, sea_level_pressure);    //write LSB to barometric input register
-    __delay_cycles(3000);                               //delay for write
+    __delay_cycles(CYCLES);                               //delay for write
     return;
 }
 
@@ -37,13 +38,13 @@ float get_altitude()
     //Initiate new measurement
     REG1_CONTROL_WORD |= CTRL_REG1_OST;
     Write_MPL3115A2(CTRL_REG1, REG1_CONTROL_WORD);
-    __delay_cycles(3000);
+    __delay_cycles(CYCLES);
 
     //wait for new altitude data to be available
     while(0x00 == (sta & REGISTER_STATUS_PDR))
     {
         sta = Read_MPL3115A2(REGISTER_STATUS);
-        __delay_cycles(3000);
+        __delay_cycles(CYCLES);
     }
 
     //altitude is determined as specified in the MPL3115A2 data sheet
@@ -56,7 +57,7 @@ float get_altitude()
     //reset OST bit to indicate no measurement initiated.
     REG1_CONTROL_WORD &= ~CTRL_REG1_OST;
     Write_MPL3115A2(CTRL_REG1, REG1_CONTROL_WORD);
-    __delay_cycles(3000);
+    __delay_cycles(CYCLES);
 
     return altitude;
 }
@@ -77,7 +78,7 @@ float get_temperature(void)
     while(0x00 == (sta & REGISTER_STATUS_TDR))
     {
         sta = Read_MPL3115A2(REGISTER_STATUS);
-        __delay_cycles(3000);
+        __delay_cycles(CYCLES);
     }
 
     //MSB and LSB bits are shifted into their proper location in temp
@@ -116,7 +117,7 @@ void Init_I2C(uint8_t Device_Address)
                       EUSCI_B_CTLW0_SYNC    |   // Sync mode
                       EUSCI_B_CTLW0_SSEL__SMCLK;// SMCLK
 
-    EUSCI_B0->BRW = 120;                         // baud rate = SMCLK / 120 = 100kHz
+    EUSCI_B0->BRW = 60;                         // baud rate = SMCLK / 60 = 200kHz
     EUSCI_B0->I2CSA = Device_Address;           // Slave address
     EUSCI_B0->CTLW0 &= ~EUSCI_B_CTLW0_SWRST;    // Release eUSCI from reset
 
@@ -134,12 +135,12 @@ void Init_MPL3115A2(void)
 {
     //used for debugging to determine if correct device identified
     uint8_t whoami = Read_MPL3115A2(MPL3115A2_WHOAMI);
-    __delay_cycles(3000);
+    __delay_cycles(CYCLES);
 
     //set device in reset mode
     REG1_CONTROL_WORD = CTRL_REG1_RST;
     Write_MPL3115A2(CTRL_REG1,REG1_CONTROL_WORD);
-    __delay_cycles(3000);
+    __delay_cycles(CYCLES);
 
     //wait for device to enter reset mode
     while(Read_MPL3115A2(CTRL_REG1) & CTRL_REG1_RST);
@@ -147,18 +148,18 @@ void Init_MPL3115A2(void)
     //set device in Altimeter mode with a sampling rate of 128
     REG1_CONTROL_WORD = CTRL_REG1_ALT | (0x07<<CTRL_REG1_OSR_OFFSET);
     Write_MPL3115A2(CTRL_REG1,REG1_CONTROL_WORD);
-    __delay_cycles(3000);
+    __delay_cycles(CYCLES);
 
     //enable data event flags and data ready flag generation
     Write_MPL3115A2(PT_DATA_CFG, PT_DATA_CFG_TDEFE   |
                                  PT_DATA_CFG_PDEFE   |
                                  PT_DATA_CFG_DREM);
-    __delay_cycles(3000);
+    __delay_cycles(CYCLES);
 
     //set device in active mode
     REG1_CONTROL_WORD |= CTRL_REG1_SBYB;
     Write_MPL3115A2(CTRL_REG1, REG1_CONTROL_WORD);
-    __delay_cycles(3000);
+    __delay_cycles(CYCLES);
     return;
 }
 
