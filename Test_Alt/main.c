@@ -4,7 +4,6 @@
 int main(void)
 {
     int i = 0;
-    float temperature[5], altitude[5];
     float temp = 0;
     float alt = 0;
 
@@ -23,27 +22,9 @@ int main(void)
     Init_MPL3115A2();
     set_sea_pressure(101372);
 
-    for(i = 0; i < 5; i++){
-        temperature[i] = get_temperature();
-        __delay_cycles(1500000);
-    }
+    temp = get_temperature();
 
-    for(i = 0; i < 5; i++){
-        temp += temperature[i];
-    }
-    temp /= 5.0;
-
-    for(i = 0; i < 5; i++){
-        altitude[i] = get_altitude();
-        __delay_cycles(1500000);
-    }
-
-    for(i = 0; i < 5; i++){
-        alt += altitude[i];
-    }
-    alt /= 5.0;
-
-    //float altitude = get_altitude();
+    alt = get_altitude();
 
     while(1);
 }

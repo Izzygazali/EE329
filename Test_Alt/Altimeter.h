@@ -39,14 +39,17 @@
 #define PT_DATA_CFG_DREM        0x04        //Data ready event mode
 
 //number of cycles to delay for 1ms, 12MHz SMCLK
-#define CYCLES   12000
+#define CYCLES                  12000
+
+//bit definitions, I2 SDA -> P6.6 and SCL P6.7
+#define SDA                     BIT6
+#define SCL                     BIT7
 
 //function prototypes
 void Init_I2C(uint8_t Device_Address);
 void Init_MPL3115A2(void);
 void Write_MPL3115A2(uint8_t MemAddress, uint8_t MemByte);
 void set_sea_pressure(float pascal);
-void EUSCIB0_IRQHandler(void);
 float get_altitude(void);
 float get_temperature(void);
 uint8_t Read_MPL3115A2(uint8_t MemAddress);

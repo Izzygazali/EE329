@@ -106,22 +106,22 @@ float get_temperature(void)
  */
 void Init_I2C(uint8_t Device_Address)
 {
-    P1->SEL0 |= BIT6 | BIT7;                    // Set I2C pins of eUSCI_B0
+    P6->SEL1 |= (SDA | SCL);                    // Set I2C pins of eUSCI_B3
 
-    NVIC->ISER[0] = 1 << ((EUSCIB0_IRQn) & 31); // Enable eUSCIB0 interrupt in NVIC module
+    NVIC->ISER[0] = 1 << ((EUSCIB3_IRQn) & 31); // Enable eUSCIB3 interrupt in NVIC module
 
-    EUSCI_B0->CTLW0 |= EUSCI_B_CTLW0_SWRST;     // Software reset enabled
-    EUSCI_B0->CTLW0 = EUSCI_B_CTLW0_SWRST   |   // Remain eUSCI in reset mode
+    EUSCI_B3->CTLW0 |= EUSCI_B_CTLW0_SWRST;     // Software reset enabled
+    EUSCI_B3->CTLW0 = EUSCI_B_CTLW0_SWRST   |   // Remain eUSCI in reset mode
                       EUSCI_B_CTLW0_MODE_3  |   // I2C mode
                       EUSCI_B_CTLW0_MST     |   // Master mode
                       EUSCI_B_CTLW0_SYNC    |   // Sync mode
                       EUSCI_B_CTLW0_SSEL__SMCLK;// SMCLK
 
-    EUSCI_B0->BRW = 60;                         // baud rate = SMCLK / 60 = 200kHz
-    EUSCI_B0->I2CSA = Device_Address;           // Slave address
-    EUSCI_B0->CTLW0 &= ~EUSCI_B_CTLW0_SWRST;    // Release eUSCI from reset
+    EUSCI_B3->BRW = 60;                         // baud rate = SMCLK / 60 = 200kHz
+    EUSCI_B3->I2CSA = Device_Address;           // Slave address
+    EUSCI_B3->CTLW0 &= ~EUSCI_B_CTLW0_SWRST;    // Release eUSCI from reset
 
-    EUSCI_B0->IE |= EUSCI_A_IE_RXIE |           // Enable receive interrupt
+    EUSCI_B3->IE |= EUSCI_A_IE_RXIE |           // Enable receive interrupt
                     EUSCI_A_IE_TXIE;
     return;
 }
@@ -181,23 +181,23 @@ void Write_MPL3115A2(uint8_t MemAddress, uint8_t MemByte)
     uint8_t Address;
     Address = MemAddress;
 
-    EUSCI_B0->CTLW0 |= EUSCI_B_CTLW0_TR;          // Set transmit mode (write)
-    EUSCI_B0->CTLW0 |= EUSCI_B_CTLW0_TXSTT;       // I2C start condition
+    EUSCI_B3->CTLW0 |= EUSCI_B_CTLW0_TR;          // Set transmit mode (write)
+    EUSCI_B3->CTLW0 |= EUSCI_B_CTLW0_TXSTT;       // I2C start condition
 
     while (!TransmitFlag);                        // Wait for  address to transmit
     TransmitFlag = 0;
 
-    EUSCI_B0 -> TXBUF = Address;                  // Send the high byte of the memory address
+    EUSCI_B3 -> TXBUF = Address;                  // Send the high byte of the memory address
 
     while (!TransmitFlag);                        // Wait for the transmit to complete
     TransmitFlag = 0;
 
-    EUSCI_B0 -> TXBUF = MemByte;                  // Send the byte to store in EEPROM
+    EUSCI_B3 -> TXBUF = MemByte;                  // Send the byte to write to MPL3115A2
 
     while (!TransmitFlag);                        // Wait for the transmit to complete
     TransmitFlag = 0;
 
-    EUSCI_B0 -> CTLW0 |= EUSCI_B_CTLW0_TXSTP;     // I2C stop condition
+    EUSCI_B3 -> CTLW0 |= EUSCI_B_CTLW0_TXSTP;     // I2C stop condition
 
     return;
 }
@@ -221,30 +221,30 @@ uint8_t Read_MPL3115A2(uint8_t MemAddress)
     uint8_t ReceiveByte;
     uint8_t Address = MemAddress;
 
-    EUSCI_B0->CTLW0 |= EUSCI_B_CTLW0_TR;          // Set transmit mode (write)
-    EUSCI_B0->CTLW0 |= EUSCI_B_CTLW0_TXSTT;       // I2C start condition
+    EUSCI_B3->CTLW0 |= EUSCI_B_CTLW0_TR;          // Set transmit mode (write)
+    EUSCI_B3->CTLW0 |= EUSCI_B_CTLW0_TXSTT;       // I2C start condition
 
-    while (!TransmitFlag);                        // Wait for EEPROM address to transmit
+    while (!TransmitFlag);                        // Wait for address to transmit
     TransmitFlag = 0;
 
-    EUSCI_B0 -> TXBUF = Address;                  // Send the high byte of the memory address
+    EUSCI_B3 -> TXBUF = Address;                  // Send the high byte of the memory address
 
     while (!TransmitFlag);                        // Wait for the transmit to complete
     TransmitFlag = 0;
 
-    EUSCI_B0->CTLW0 &= ~EUSCI_B_CTLW0_TR;         // Set receive mode (read)
-    EUSCI_B0->CTLW0 |= EUSCI_B_CTLW0_TXSTT;       // I2C start condition (restart)
+    EUSCI_B3->CTLW0 &= ~EUSCI_B_CTLW0_TR;         // Set receive mode (read)
+    EUSCI_B3->CTLW0 |= EUSCI_B_CTLW0_TXSTT;       // I2C start condition (restart)
 
     // Wait for start to be transmitted
-    while ((EUSCI_B0->CTLW0 & EUSCI_B_CTLW0_TXSTT));
+    while ((EUSCI_B3->CTLW0 & EUSCI_B_CTLW0_TXSTT));
 
     // set stop bit to trigger after first byte
-    EUSCI_B0->CTLW0 |= EUSCI_B_CTLW0_TXSTP;
+    EUSCI_B3->CTLW0 |= EUSCI_B_CTLW0_TXSTP;
 
     while (!TransmitFlag);                        // Wait to receive a byte
     TransmitFlag = 0;
 
-    ReceiveByte = EUSCI_B0->RXBUF;                // Read byte from the buffer
+    ReceiveByte = EUSCI_B3->RXBUF;                // Read byte from the buffer
 
     return ReceiveByte;
 }
@@ -252,17 +252,17 @@ uint8_t Read_MPL3115A2(uint8_t MemAddress)
 /*
  * I2C Interrupt Service Routine, sets a transmit flag when transmit or receive is complete
  */
-void EUSCIB0_IRQHandler(void)
+void EUSCIB3_IRQHandler(void)
 {
-    if (EUSCI_B0->IFG & EUSCI_B_IFG_TXIFG0)     // Check if transmit complete
+    if (EUSCI_B3->IFG & EUSCI_B_IFG_TXIFG0)     // Check if transmit complete
     {
-        EUSCI_B0->IFG &= ~ EUSCI_B_IFG_TXIFG0;  // Clear interrupt flag
+        EUSCI_B3->IFG &= ~ EUSCI_B_IFG_TXIFG0;  // Clear interrupt flag
         TransmitFlag = 1;                       // Set global flag
     }
 
-    if (EUSCI_B0->IFG & EUSCI_B_IFG_RXIFG0)     // Check if receive complete
+    if (EUSCI_B3->IFG & EUSCI_B_IFG_RXIFG0)     // Check if receive complete
     {
-        EUSCI_B0->IFG &= ~ EUSCI_B_IFG_RXIFG0;  // Clear interrupt flag
+        EUSCI_B3->IFG &= ~ EUSCI_B_IFG_RXIFG0;  // Clear interrupt flag
         TransmitFlag = 1;                       // Set global flag
     }
 }
