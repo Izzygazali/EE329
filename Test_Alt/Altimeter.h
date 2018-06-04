@@ -44,6 +44,6 @@ void Init_MPL3115A2(void);
 void Write_MPL3115A2(uint8_t MemAddress, uint8_t MemByte);
 void set_sea_pressure(float pascal);
 void EUSCIB0_IRQHandler(void);
-float get_altitude();
+float get_altitude(void);
 float get_temperature(void);
 uint8_t Read_MPL3115A2(uint8_t MemAddress);

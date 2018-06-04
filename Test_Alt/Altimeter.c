@@ -116,7 +116,7 @@ void Init_I2C(uint8_t Device_Address)
                       EUSCI_B_CTLW0_SYNC    |   // Sync mode
                       EUSCI_B_CTLW0_SSEL__SMCLK;// SMCLK
 
-    EUSCI_B0->BRW = 30;                         // baud rate = SMCLK / 30 = 100kHz
+    EUSCI_B0->BRW = 120;                         // baud rate = SMCLK / 120 = 100kHz
     EUSCI_B0->I2CSA = Device_Address;           // Slave address
     EUSCI_B0->CTLW0 &= ~EUSCI_B_CTLW0_SWRST;    // Release eUSCI from reset
 
