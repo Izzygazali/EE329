@@ -108,9 +108,9 @@ char * alt_to_string(){
 
 char * speed_to_string(){
     uint8_t i,j;
-    float dummyVar = 0;
+    float curr_speed = get_curr_speed()*0.036;
     static char speed[6];
-    sprintf(speed, "%0.1f",dummyVar );
+    sprintf(speed, "%0.1f", curr_speed);
 
     for(i = 5; i > 0; i--){
         if((speed[i] == 48)||(speed[i] == 0)&&(speed[i-1] != '.'))

@@ -132,8 +132,10 @@ void lcd_FSM(void)
                 LCD_HOME();
                 LCD_CLR();
                 WRITE_STR_LCD("Date: ");
+                WRITE_STR_LCD(date_to_string());
                 SET_CUR_POS_LCD(0x40);
                 WRITE_STR_LCD("Time: ");
+                WRITE_STR_LCD(time_to_string());
                 lcd_flags &= ~lcd_screen_flag;
             }
 
@@ -143,8 +145,10 @@ void lcd_FSM(void)
                 LCD_HOME();
                 LCD_CLR();
                 WRITE_STR_LCD("Lat: ");
+                WRITE_STR_LCD(latitude_to_string());
                 SET_CUR_POS_LCD(0x40);
                 WRITE_STR_LCD("Lon: ");
+                WRITE_STR_LCD(longitude_to_string());
                 lcd_flags &= ~lcd_screen_flag;
             }
             break;
@@ -153,8 +157,10 @@ void lcd_FSM(void)
                 LCD_HOME();
                 LCD_CLR();
                 WRITE_STR_LCD("Spd: ");
+                WRITE_STR_LCD(speed_to_string());
                 SET_CUR_POS_LCD(0x40);
                 WRITE_STR_LCD("Alt: ");
+                WRITE_STR_LCD(alt_to_string());
                 lcd_flags &= ~lcd_screen_flag;
             }
         case data_4:
@@ -162,6 +168,7 @@ void lcd_FSM(void)
                 LCD_HOME();
                 LCD_CLR();
                 WRITE_STR_LCD("Temp: ");
+                WRITE_STR_LCD(temp_to_string());
                 lcd_flags &= ~lcd_screen_flag;
             }
             break;

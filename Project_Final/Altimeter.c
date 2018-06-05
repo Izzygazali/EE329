@@ -17,7 +17,7 @@ void set_sea_pressure(float pascal)
     __delay_cycles(CYCLES);                               //delay for write
     Write_MPL3115A2(BAR_IN_LSB, sea_level_pressure);    //write LSB to barometric input register
     __delay_cycles(CYCLES);                               //delay for write
-    return;
+   return;
 }
 
 /*

@@ -27,6 +27,7 @@ uint32_t classid;
 //variables to store current data
 uint32_t curr_lat = 0;
 uint32_t curr_lon = 0;
+uint32_t curr_speed = 0;
 uint32_t curr_tow = 0;
 uint32_t diff_tow = 0;
 uint32_t curr_dist = 0;
@@ -67,6 +68,10 @@ uint32_t get_curr_lat(void)
 uint32_t get_curr_lon(void)
 {
     return curr_lon;
+}
+uint32_t get_curr_speed(void)
+{
+   return curr_speed;
 }
 uint32_t get_curr_tow(void)
 {
@@ -160,6 +165,10 @@ void gps_parse_logic(void)
         case 0x0501:
             gps_flags |= gps_ack_flag;
             break;
+        case 0x0112:
+            curr_speed = (gps_payload[23] << 24)| (gps_payload[22] << 16) | (gps_payload[21] << 8) | gps_payload[20];
+            gps_flags |= new_data_flag;
+            break;
     }
     return;
 }
@@ -230,7 +239,7 @@ void init_GPS(void)
     CS->KEY = CS_KEY_VAL;
     CS->CTL0 = 0;
     CS->CTL0 = CS_CTL0_DCORSEL_3;
-    CS->CTL1 = CS_CTL1_SELS_3 | CS_CTL1_SELM_3;
+    CS->CTL1 = CS_CTL1_SELS_3; //| CS_CTL1_SELM_3;
     CS->KEY = 0;
     //initialize ports for UART
     P3->SEL0 |= (RX+TX);
@@ -249,7 +258,7 @@ void init_GPS(void)
     EUSCI_A2->IE |= EUSCI_A_IE_RXIE;
     //enable interrupts for UART A0 on NVIC and globally
     __enable_irq();
-    NVIC->ISER[0] = 1 << ((EUSCIA2_IRQn) & 31);
+    NVIC->ISER[0] = 1 << ((EUSCIA2_IRQn) & 31); // Disable GPS interrupts during I2C setup
     return;
 }
 
