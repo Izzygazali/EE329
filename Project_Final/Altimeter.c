@@ -83,8 +83,10 @@ float get_temperature(void)
 
     //MSB and LSB bits are shifted into their proper location in temp
     temp = Read_MPL3115A2(REGISTER_TEMP_MSB);
+    __delay_cycles(CYCLES);
     temp<<=8;
     temp|= Read_MPL3115A2(REGISTER_TEMP_LSB);
+    __delay_cycles(CYCLES);
     temp>>=4;
 
     //check if temperature is negative
@@ -143,7 +145,7 @@ void Init_MPL3115A2(void)
     __delay_cycles(CYCLES);
 
     //wait for device to enter reset mode
-    while(Read_MPL3115A2(CTRL_REG1) & CTRL_REG1_RST);
+   // while(Read_MPL3115A2(CTRL_REG1) & CTRL_REG1_RST);
 
     //set device in Altimeter mode with a sampling rate of 128
     REG1_CONTROL_WORD = CTRL_REG1_ALT | (0x07<<CTRL_REG1_OSR_OFFSET);

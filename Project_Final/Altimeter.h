@@ -39,7 +39,7 @@
 #define PT_DATA_CFG_DREM        0x04        //Data ready event mode
 
 //number of cycles to delay for 1ms, 12MHz SMCLK
-#define CYCLES                  12000
+#define CYCLES                  48000
 
 //bit definitions, I2 SDA -> P6.6 and SCL P6.7
 #define SDA                     BIT6

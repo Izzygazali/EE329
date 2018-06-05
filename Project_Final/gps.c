@@ -38,6 +38,7 @@ uint8_t  curr_hour = 0;
 uint8_t  curr_minute = 0;
 uint8_t  curr_second = 0;
 uint8_t  curr_sats = 0;
+uint32_t curr_speed = 0;
 
 //states used to parse gps data
 enum state_type{
@@ -157,6 +158,10 @@ void gps_parse_logic(void)
             curr_sats = gps_payload[5];
             if (curr_sats >= 5)
                 gps_flags |= data_valid_flag;
+            gps_flags |= new_data_flag;
+            break;
+        case 0x0112:
+            curr_speed = (gps_payload[23] << 24)| (gps_payload[22] << 16) | (gps_payload[21] << 8) | gps_payload[20];
             gps_flags |= new_data_flag;
             break;
         case 0x0500:

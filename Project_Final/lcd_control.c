@@ -9,9 +9,6 @@ uint16_t lcd_flags = 0x0001;
 //0 -> run; 1 -> pause; 2 -> stop
 
 uint8_t run_state = 0;
-char *timer_str = "12:33";
-char *pace_str = "12:22";
-char *dist_str = "999.99";
 
 
 enum event_type{
@@ -31,6 +28,12 @@ enum state_type{
 };
 
 enum state_type state = hiking_display;
+
+void set_lcd_flags(uint16_t flags)
+{
+    lcd_flags |= flags;
+    return;
+}
 
 void lcd_state_decode(void)
 {
@@ -80,8 +83,7 @@ void lcd_state_decode(void)
 }
 void lcd_FSM(void)
 {
-
-
+    NVIC->ICER[0] = 1 << ((EUSCIA2_IRQn) & 31);
     switch(state)
     {
         case hiking_display:
@@ -90,7 +92,7 @@ void lcd_FSM(void)
                 LCD_CLR();
                 WRITE_STR_LCD(tow_to_string());
                 SET_CUR_POS_LCD(0x08);
-                WRITE_STR_LCD(pace_str);
+                WRITE_STR_LCD(pace_to_string());
                 WRITE_STR_LCD("/Km");
                 SET_CUR_POS_LCD(0x40);
                 WRITE_STR_LCD(dist_to_string());
@@ -158,9 +160,17 @@ void lcd_FSM(void)
                 LCD_CLR();
                 WRITE_STR_LCD("Spd: ");
                 WRITE_STR_LCD(speed_to_string());
+<<<<<<< HEAD
                 SET_CUR_POS_LCD(0x40);
                 WRITE_STR_LCD("Alt: ");
                 WRITE_STR_LCD(alt_to_string());
+=======
+                WRITE_STR_LCD("Km/hr");
+                SET_CUR_POS_LCD(0x40);
+                WRITE_STR_LCD("Alt: ");
+                WRITE_STR_LCD(alt_to_string());
+                WRITE_STR_LCD("m");
+>>>>>>> origin/IzzyTest2
                 lcd_flags &= ~lcd_screen_flag;
             }
         case data_4:
@@ -169,6 +179,10 @@ void lcd_FSM(void)
                 LCD_CLR();
                 WRITE_STR_LCD("Temp: ");
                 WRITE_STR_LCD(temp_to_string());
+<<<<<<< HEAD
+=======
+                WRITE_STR_LCD(" degC");
+>>>>>>> origin/IzzyTest2
                 lcd_flags &= ~lcd_screen_flag;
             }
             break;
@@ -176,6 +190,7 @@ void lcd_FSM(void)
             state = hiking_display;
             break;
     }
+    NVIC->ISER[0] = 1 << ((EUSCIA2_IRQn) & 31);
     return;
 }
 

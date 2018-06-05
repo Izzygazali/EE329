@@ -10,3 +10,4 @@
 void lcd_state_decode(void);
 void lcd_FSM(void);
 void init_buttons(void);
+void set_lcd_flags(uint16_t flags);
