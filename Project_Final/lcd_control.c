@@ -5,10 +5,10 @@
 
 //bit 0 - "redraw" screen flag
 //bit 1 - enter key flag
+//bit 2 - start log flag
 uint16_t lcd_flags = 0x0001;
-//0 -> run; 1 -> pause; 2 -> stop
 
-uint8_t run_state = 0;
+
 
 
 enum event_type{
@@ -29,6 +29,11 @@ enum state_type{
 
 enum state_type state = hiking_display;
 
+uint16_t get_lcd_flags(void)
+{
+    return lcd_flags;
+}
+
 void set_lcd_flags(uint16_t flags)
 {
     lcd_flags |= flags;
@@ -46,10 +51,7 @@ void lcd_state_decode(void)
                     state--;
                 lcd_flags |= lcd_screen_flag;
             }else{
-                if (run_state == 2)
-                    run_state = 0;
-                else
-                    run_state++;
+                lcd_flags |= lcd_state_flag;
             }
             break;
         case down_pressed:
@@ -60,10 +62,7 @@ void lcd_state_decode(void)
                     state++;
                 lcd_flags |= lcd_screen_flag;
             }else{
-                if (run_state == 0)
-                    run_state = 2;
-                else
-                    run_state--;
+                lcd_flags &= ~lcd_state_flag;
             }
             break;
         case enter_pressed:
@@ -97,36 +96,20 @@ void lcd_FSM(void)
                 SET_CUR_POS_LCD(0x40);
                 WRITE_STR_LCD(dist_to_string());
                 WRITE_STR_LCD("Km");
-                SET_CUR_POS_LCD(0x4B);
-                WRITE_STR_LCD("R P S");
-                switch(run_state)
-                {
-                case 0:
-                    SET_CUR_POS_LCD(0x4A);
-                break;
-                case 1:
+                SET_CUR_POS_LCD(0x4D);
+                WRITE_STR_LCD("S E");
+                if (lcd_flags & lcd_state_flag)
                     SET_CUR_POS_LCD(0x4C);
-                break;
-                case 2:
+                else
                     SET_CUR_POS_LCD(0x4E);
-                break;
-                }
                 WRITE_STR_LCD("*");
                 lcd_flags &= ~lcd_screen_flag;
             }
             if (lcd_flags & lcd_enter_flag){
-                switch(run_state)
-                {
-                    case 0:
-                        SET_CUR_POS_LCD(0x4A);
-                        break;
-                    case 1:
-                        SET_CUR_POS_LCD(0x4C);
-                        break;
-                    case 2:
-                        SET_CUR_POS_LCD(0x4E);
-                        break;
-                }
+                if (lcd_flags & lcd_state_flag)
+                     SET_CUR_POS_LCD(0x4C);
+                 else
+                     SET_CUR_POS_LCD(0x4E);
             }
             break;
         case data_1:
