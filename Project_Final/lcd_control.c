@@ -160,17 +160,11 @@ void lcd_FSM(void)
                 LCD_CLR();
                 WRITE_STR_LCD("Spd: ");
                 WRITE_STR_LCD(speed_to_string());
-<<<<<<< HEAD
-                SET_CUR_POS_LCD(0x40);
-                WRITE_STR_LCD("Alt: ");
-                WRITE_STR_LCD(alt_to_string());
-=======
                 WRITE_STR_LCD("Km/hr");
                 SET_CUR_POS_LCD(0x40);
                 WRITE_STR_LCD("Alt: ");
                 WRITE_STR_LCD(alt_to_string());
                 WRITE_STR_LCD("m");
->>>>>>> origin/IzzyTest2
                 lcd_flags &= ~lcd_screen_flag;
             }
         case data_4:
@@ -179,10 +173,7 @@ void lcd_FSM(void)
                 LCD_CLR();
                 WRITE_STR_LCD("Temp: ");
                 WRITE_STR_LCD(temp_to_string());
-<<<<<<< HEAD
-=======
                 WRITE_STR_LCD(" degC");
->>>>>>> origin/IzzyTest2
                 lcd_flags &= ~lcd_screen_flag;
             }
             break;

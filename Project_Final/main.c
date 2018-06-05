@@ -21,6 +21,7 @@ int main(void)
     while((get_gps_flags() & gps_ack_flag) == 0)
         reset_gps_odometer();
 
+    WDTCTL = WDT_ARST_1000;
     while(1){
         set_lcd_flags(lcd_screen_flag);
         lcd_state_decode();
