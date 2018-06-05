@@ -39,6 +39,7 @@ uint8_t  curr_minute = 0;
 uint8_t  curr_second = 0;
 uint8_t  curr_sats = 0;
 uint32_t curr_speed = 0;
+uint32_t old_tow = 0;
 
 //states used to parse gps data
 enum state_type{
@@ -124,10 +125,14 @@ void reset_gps_odometer(void)
     return;
 }
 
+void reset_tow(void)
+{
+    old_tow = 0;
+    return;
+}
 
 void gps_parse_logic(void)
 {
-    static uint32_t old_tow = 0;
     switch((class << 8) | id)
     {
         //class, id indicates a NAV message with lat, lon, and tow
