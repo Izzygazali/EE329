@@ -13,3 +13,4 @@ char * temp_to_string();
 char * alt_to_string();
 char * speed_to_string();
 char * tow_to_string();
+char * dist_to_string();

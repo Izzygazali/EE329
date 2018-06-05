@@ -1,5 +1,6 @@
 #include "gps.h"
 
+#include "string_conv.h"
 
 
 //flags for indicating gps operation state

@@ -28,7 +28,6 @@ char * tow_to_string(){
     return time;
 }
 
-
 char * longitude_to_string(){
     static char longitude[12];
     char temp[3];
@@ -126,4 +125,11 @@ char * speed_to_string(){
     return speed;
 }
 
-
+char * dist_to_string()
+{
+    float dist;
+    static char dist_string[5];
+    dist = get_curr_dist()/((float)1000);
+    sprintf(dist_string, "%0.1f",dist);
+    return dist_string;
+}

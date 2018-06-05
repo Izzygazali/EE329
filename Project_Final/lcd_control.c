@@ -1,5 +1,7 @@
 #include "LCD.h"
 #include "lcd_control.h"
+#include "gps.h"
+#include "string_conv.h"
 
 //bit 0 - "redraw" screen flag
 //bit 1 - enter key flag
@@ -91,7 +93,7 @@ void lcd_FSM(void)
                 WRITE_STR_LCD(pace_str);
                 WRITE_STR_LCD("/Km");
                 SET_CUR_POS_LCD(0x40);
-                WRITE_STR_LCD(dist_str);
+                WRITE_STR_LCD(dist_to_string());
                 WRITE_STR_LCD("Km");
                 SET_CUR_POS_LCD(0x4B);
                 WRITE_STR_LCD("R P S");
