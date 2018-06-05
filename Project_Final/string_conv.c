@@ -28,6 +28,19 @@ char * tow_to_string(){
     return time;
 }
 
+char * pace_to_string(){
+    static char pace_string[8];
+    uint8_t sec, min;
+    uint32_t pace = get_diff_tow()/get_curr_dist();
+    min = pace/60;
+    if (min > 60 || pace == 0)
+        return "XX:XX";
+    sec = pace - min*60;
+    sprintf(pace_string, "%02.2u:%02.2u", min, sec);
+    return pace_string;
+}
+
+
 char * longitude_to_string(){
     static char longitude[12];
     char temp[3];
@@ -108,9 +121,9 @@ char * alt_to_string(){
 
 char * speed_to_string(){
     uint8_t i,j;
-    float dummyVar = 0;
+    float curr_speed = get_curr_speed()*0.036;
     static char speed[6];
-    sprintf(speed, "%0.1f",dummyVar );
+    sprintf(speed, "%0.1f", curr_speed);
 
     for(i = 5; i > 0; i--){
         if((speed[i] == 48)||(speed[i] == 0)&&(speed[i-1] != '.'))

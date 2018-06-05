@@ -26,3 +26,4 @@ uint8_t get_curr_day(void);
 uint8_t get_curr_hour(void);
 uint8_t get_curr_minute(void);
 uint8_t get_curr_second(void);
+uint32_t get_curr_speed(void);

@@ -24,12 +24,9 @@ int main(void)
 
 
     while(1){
-        uint32_t lat = get_curr_lat();
-        uint32_t lon = get_curr_lon();
-        uint32_t tow = get_curr_tow();
-        uint32_t dist = get_curr_dist();
-        uint32_t diff = get_diff_tow();
+        set_lcd_flags(lcd_screen_flag);
         lcd_state_decode();
         lcd_FSM();
+        __delay_cycles(24000000);
     }
 }
