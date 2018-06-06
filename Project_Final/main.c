@@ -4,6 +4,7 @@
 #include "LCD.h"
 #include "string_conv.h"
 #include "Altimeter.h"
+#include "sd.h"
 
 
 enum state_type{
@@ -61,7 +62,8 @@ void sys_FSM(void)
             while((get_gps_flags() & gps_ack_flag) == 0)
                 reset_gps_odometer();
             reset_tow();
-            //start sd card new log file
+            init_log_file();
+            write_header();
             sys_state = log;
             break;
         case log:
@@ -69,11 +71,11 @@ void sys_FSM(void)
             lcd_state_decode();
             lcd_FSM();
             __delay_cycles(24000000);
-            //delay time
-            //write data to sd card
+            write_gps_coord();
             break;
         case end_log:
-            //close log file
+            end_log_file();
+            close_log_file();
             sys_state = idle;
             break;
         default:
@@ -85,7 +87,11 @@ void sys_FSM(void)
 int main(void)
 {
     WDTCTL = WDTPW | WDTHOLD;
-
+    init_log_file();
+    write_header();
+    end_log_file();
+    close_log_file();
+    while(1);
     while(1){
         sys_state_decode();
         sys_FSM();
