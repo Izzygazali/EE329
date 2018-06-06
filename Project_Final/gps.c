@@ -27,7 +27,6 @@ uint32_t classid;
 //variables to store current data
 uint32_t curr_lat = 0;
 uint32_t curr_lon = 0;
-uint32_t curr_speed = 0;
 uint32_t curr_tow = 0;
 uint32_t diff_tow = 0;
 uint32_t curr_dist = 0;
@@ -38,6 +37,7 @@ uint8_t  curr_hour = 0;
 uint8_t  curr_minute = 0;
 uint8_t  curr_second = 0;
 uint8_t  curr_sats = 0;
+uint32_t curr_speed = 0;
 uint32_t old_tow = 0;
 
 //states used to parse gps data
@@ -153,7 +153,10 @@ void gps_parse_logic(void)
             curr_year = (gps_payload[13] << 8) | (gps_payload[12]);
             curr_month = gps_payload[14];
             curr_day = gps_payload[15];
-            curr_hour = gps_payload[16] - 7; //conversion from UTC to PST
+            if (gps_payload[16] < 7)
+                curr_hour = 17 + gps_payload[16];
+            else
+                curr_hour = gps_payload[16] - 7;
             curr_minute = gps_payload[17];
             curr_second = gps_payload[18];
             gps_flags |= new_data_flag;
@@ -244,7 +247,7 @@ void init_GPS(void)
     CS->KEY = CS_KEY_VAL;
     CS->CTL0 = 0;
     CS->CTL0 = CS_CTL0_DCORSEL_3;
-    CS->CTL1 = CS_CTL1_SELS_3; //| CS_CTL1_SELM_3;
+    CS->CTL1 = CS_CTL1_SELS_3 | CS_CTL1_SELM_3 | CS_CTL1_SELA__REFOCLK;
     CS->KEY = 0;
     //initialize ports for UART
     P3->SEL0 |= (RX+TX);
@@ -263,7 +266,9 @@ void init_GPS(void)
     EUSCI_A2->IE |= EUSCI_A_IE_RXIE;
     //enable interrupts for UART A0 on NVIC and globally
     __enable_irq();
-    NVIC->ISER[0] = 1 << ((EUSCIA2_IRQn) & 31); // Disable GPS interrupts during I2C setup
+    NVIC->ISER[0] = 1 << ((EUSCIA2_IRQn) & 31);
+    //NVIC ->IP[18] = 0X20;
+
     return;
 }
 

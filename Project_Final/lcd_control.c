@@ -6,7 +6,7 @@
 //bit 0 - "redraw" screen flag
 //bit 1 - enter key flag
 //bit 2 - start log flag
-uint16_t lcd_flags = 0x0001;
+uint16_t lcd_flags = 0x0000;
 
 
 
@@ -49,7 +49,7 @@ void lcd_state_decode(void)
                     state = data_4;
                 else
                     state--;
-                lcd_flags |= lcd_screen_flag;
+                //lcd_flags |= lcd_screen_flag;
             }else{
                 lcd_flags |= lcd_state_flag;
             }
@@ -60,7 +60,7 @@ void lcd_state_decode(void)
                     state = hiking_display;
                 else
                     state++;
-                lcd_flags |= lcd_screen_flag;
+               //lcd_flags |= lcd_screen_flag;
             }else{
                 lcd_flags &= ~lcd_state_flag;
             }
@@ -179,8 +179,29 @@ void init_buttons(void)
 
     __enable_irq();
     NVIC->ISER[1] = 1 << ((PORT5_IRQn) & 31);
+    //NVIC ->IP[39] = 0X20;
     return;
 }
+
+
+void LCD_update_timer(void)
+{
+    // TACCR0 interrupt enabled
+    TIMER_A0->CCTL[0] = TIMER_A_CCTLN_CCIE;
+    TIMER_A0->CCTL[0] &= ~TIMER_A_CCTLN_CCIFG;
+
+    //Set CCR0 value that generate an interrupt every 2s
+    TIMER_A0->CCR[0] = CCR0_COUNT;
+
+    //ACLK, up mode
+    TIMER_A0->CTL = TIMER_A_CTL_SSEL__ACLK | TIMER_A_CTL_MC__UP;
+
+    // Enable interrupts
+    NVIC->ISER[0] = 1 << ((TA0_0_IRQn) & 31);
+    //NVIC ->IP[8] = 0X20;
+    return;
+}
+
 
 void PORT5_IRQHandler(void)
 {
@@ -195,3 +216,16 @@ void PORT5_IRQHandler(void)
     }
     P5->IFG &= ~(button_up | button_down | button_enter);
 }
+
+// Timer A0 interrupt service routine
+void TA0_0_IRQHandler(void)
+{
+    //LCD update flag is set approximately every 2s
+    if (TIMER_A0->CCTL[0] & TIMER_A_CCTLN_CCIFG){
+        lcd_flags |= lcd_screen_flag;
+
+    }
+
+    TIMER_A0->CCTL[0] &= ~TIMER_A_CCTLN_CCIFG;
+}
+

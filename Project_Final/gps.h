@@ -17,7 +17,6 @@ void init_GPS(void);
 void reset_gps_odometer(void);
 uint32_t get_curr_lat(void);
 uint32_t get_curr_lon(void);
-uint32_t get_curr_speed(void);
 uint32_t get_curr_tow(void);
 uint32_t get_diff_tow(void);
 uint32_t get_curr_dist(void);

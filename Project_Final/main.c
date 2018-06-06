@@ -48,14 +48,14 @@ void sys_FSM(void)
             Init_I2C(MPL3115A2_ADDRESS);
             Init_MPL3115A2();
             set_sea_pressure(101172);
+            LCD_update_timer();
             WRITE_STR_LCD("Invalid GPS...");
             while((get_gps_flags() & data_valid_flag) == 0);
             sys_state = idle;
         case idle:
-            set_lcd_flags(lcd_screen_flag);
             lcd_state_decode();
             lcd_FSM();
-            __delay_cycles(24000000);
+            //__delay_cycles(24000000);
             break;
         case start_log:
             while((get_gps_flags() & gps_ack_flag) == 0)
@@ -65,10 +65,9 @@ void sys_FSM(void)
             sys_state = log;
             break;
         case log:
-            set_lcd_flags(lcd_screen_flag);
             lcd_state_decode();
             lcd_FSM();
-            __delay_cycles(24000000);
+            //__delay_cycles(24000000);
             //delay time
             //write data to sd card
             break;

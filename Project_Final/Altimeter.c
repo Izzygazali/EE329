@@ -17,7 +17,7 @@ void set_sea_pressure(float pascal)
     __delay_cycles(CYCLES);                               //delay for write
     Write_MPL3115A2(BAR_IN_LSB, sea_level_pressure);    //write LSB to barometric input register
     __delay_cycles(CYCLES);                               //delay for write
-   return;
+    return;
 }
 
 /*
@@ -34,6 +34,7 @@ float get_altitude()
 
     //If a measurement has already been initiated, wait for measurement to complete
     while((Read_MPL3115A2(CTRL_REG1) & CTRL_REG1_OST));
+    __delay_cycles(CYCLES);
 
     //Initiate new measurement
     REG1_CONTROL_WORD |= CTRL_REG1_OST;
@@ -49,7 +50,11 @@ float get_altitude()
 
     //altitude is determined as specified in the MPL3115A2 data sheet
     temp_alt = (Read_MPL3115A2(REGISTER_PRESSURE_MSB))<<24;
+    __delay_cycles(CYCLES);
+
     temp_alt |= (Read_MPL3115A2(REGISTER_PRESSURE_CSB))<<16;
+    __delay_cycles(CYCLES);
+
     temp_alt |= (Read_MPL3115A2(REGISTER_PRESSURE_LSB))<<8;
     altitude = temp_alt;
     altitude /= 65536.0;
