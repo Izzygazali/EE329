@@ -153,7 +153,10 @@ void gps_parse_logic(void)
             curr_year = (gps_payload[13] << 8) | (gps_payload[12]);
             curr_month = gps_payload[14];
             curr_day = gps_payload[15];
-            curr_hour = gps_payload[16] - 7; //conversion from UTC to PST
+            if (gps_payload[16] < 7)
+                curr_hour = 17 + gps_payload[16];
+            else
+                curr_hour = gps_payload[16] - 7;
             curr_minute = gps_payload[17];
             curr_second = gps_payload[18];
             gps_flags |= new_data_flag;
