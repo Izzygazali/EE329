@@ -219,15 +219,16 @@ void gps_FSM(void)
             gps_payload_index = 0;
             break;
         case get_payload:
-            if (gps_payload_index >= 200){
-                state = parse_payload;
-                break;
-            }
             gps_payload[gps_payload_index] = curr_gps_byte;
             gps_payload_index++;
             payload_size--;
-            if (payload_size < 0)1
+            if (payload_size == 0){
                 state = parse_payload;
+                while(gps_payload_index < 199){
+                    gps_payload[gps_payload_index] = 0;
+                    gps_payload_index++;
+                }
+            }
             break;
         case parse_payload:
             gps_parse_logic();

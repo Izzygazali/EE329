@@ -62,9 +62,11 @@ void sys_FSM(void)
             while((get_gps_flags() & gps_ack_flag) == 0)
                 reset_gps_odometer();
             reset_tow();
+            __disable_irq();
             init_log_file();
             __delay_cycles(100*CYCLES);
             write_header();
+            __enable_irq();
             sys_state = log;
             break;
         case log:
