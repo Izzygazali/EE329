@@ -163,7 +163,7 @@ void gps_parse_logic(void)
             break;
         case 0x0135:
             curr_sats = gps_payload[5];
-            if (curr_sats >= 5)
+            if (curr_sats >= 10)
                 gps_flags |= data_valid_flag;
             gps_flags |= new_data_flag;
             break;
@@ -226,7 +226,7 @@ void gps_FSM(void)
             gps_payload[gps_payload_index] = curr_gps_byte;
             gps_payload_index++;
             payload_size--;
-            if (payload_size < 0)
+            if (payload_size < 0)1
                 state = parse_payload;
             break;
         case parse_payload:
@@ -267,7 +267,7 @@ void init_GPS(void)
     //enable interrupts for UART A0 on NVIC and globally
     __enable_irq();
     NVIC->ISER[0] = 1 << ((EUSCIA2_IRQn) & 31);
-    //NVIC ->IP[18] = 0X20;
+    NVIC ->IP[18] = 0X20;
 
     return;
 }
