@@ -112,7 +112,6 @@ void lcd_state_decode(void)
  */
 void lcd_FSM(void)
 {
-    NVIC->ICER[0] = 1 << ((EUSCIA2_IRQn) & 31);
     switch(state)
     {
         case hiking_display:
@@ -202,7 +201,6 @@ void lcd_FSM(void)
             state = hiking_display;
             break;
     }
-    NVIC->ISER[0] = 1 << ((EUSCIA2_IRQn) & 31);
     return;
 }
 

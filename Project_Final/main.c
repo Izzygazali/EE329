@@ -52,7 +52,7 @@ void sys_FSM(void)
             set_sea_pressure(101372);
             LCD_update_timer();
             WRITE_STR_LCD("Invalid GPS...");
-            while((get_gps_flags() & data_valid_flag) == 0);
+            //while((get_gps_flags() & data_valid_flag) == 0);
             sys_state = idle;
         case idle:
             lcd_state_decode();

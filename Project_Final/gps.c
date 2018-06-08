@@ -49,6 +49,7 @@ enum state_type{
     get_length_1,
     get_length_2,
     get_payload,
+    get_check_a,
     parse_payload
 };
 
@@ -183,6 +184,8 @@ void gps_parse_logic(void)
 
 void gps_FSM(void)
 {
+    static uint8_t CK_A = 0;
+    uint8_t CK_A_test = 0;
     static enum state_type state = get_sync_1;
     switch(state)
     {
@@ -226,8 +229,15 @@ void gps_FSM(void)
             gps_payload[gps_payload_index] = curr_gps_byte;
             gps_payload_index++;
             payload_size--;
-            if (payload_size < 0)1
+            if (payload_size == 0)
                 state = parse_payload;
+            break;
+        case get_check_a:
+            CK_A_test = curr_gps_byte;
+            if (CK_A_test == CK_A)
+                state = parse_payload;
+            else
+                state = get_sync_1;
             break;
         case parse_payload:
             gps_parse_logic();
