@@ -227,8 +227,6 @@ void init_buttons(void)
 
     //enable Port 5 interrupts
     NVIC->ISER[1] = 1 << ((PORT5_IRQn) & 31);
-    NVIC ->IP[39] = 0X40;
-
     return;
 }
 
@@ -252,8 +250,6 @@ void LCD_update_timer(void)
 
     // Enable interrupts
     NVIC->ISER[0] = 1 << ((TA0_0_IRQn) & 31);
-    NVIC ->IP[8] = 0X40;
-
     return;
 }
 

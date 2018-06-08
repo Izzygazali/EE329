@@ -274,11 +274,8 @@ void init_GPS(void)
     //enable UART receive interrupts and clear the flag
     EUSCI_A2->IFG &= ~EUSCI_A_IFG_RXIFG;
     EUSCI_A2->IE |= EUSCI_A_IE_RXIE;
-    //enable interrupts for UART A0 on NVIC and globally
-    __enable_irq();
+    //enable interrupts for UART A0 on NVIC
     NVIC->ISER[0] = 1 << ((EUSCIA2_IRQn) & 31);
-    NVIC ->IP[18] = 0X20;
-
     return;
 }
 

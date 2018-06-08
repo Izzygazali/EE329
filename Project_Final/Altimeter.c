@@ -116,8 +116,6 @@ void Init_I2C(uint8_t Device_Address)
     P6->SEL1 |= (SDA | SCL);                    // Set I2C pins of eUSCI_B3
 
     NVIC->ISER[0] = 1 << ((EUSCIB3_IRQn) & 31); // Enable eUSCIB3 interrupt in NVIC module
-    NVIC ->IP[23] = 0X00;
-
 
     EUSCI_B3->CTLW0 |= EUSCI_B_CTLW0_SWRST;     // Software reset enabled
     EUSCI_B3->CTLW0 = EUSCI_B_CTLW0_SWRST   |   // Remain eUSCI in reset mode
