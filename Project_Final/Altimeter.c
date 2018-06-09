@@ -1,3 +1,8 @@
+/*
+ * Engineer(s): Ezzeddeen Gazali and Tyler Starr
+ * Create Date: 05/30/2018
+ */
+
 #include "Altimeter.h"
 
 //global variable definitions
@@ -12,11 +17,11 @@ uint32_t REG1_CONTROL_WORD = 0;
  */
 void set_sea_pressure(float pascal)
 {
-    uint16_t sea_level_pressure = pascal/2;             //Barometric input is in 2*Pa
-    Write_MPL3115A2(BAR_IN_MSB, sea_level_pressure>>8); //write MSB to barometric input register
-    __delay_cycles(CYCLES);                               //delay for write
-    Write_MPL3115A2(BAR_IN_LSB, sea_level_pressure);    //write LSB to barometric input register
-    __delay_cycles(CYCLES);                               //delay for write
+    uint16_t sea_level_pressure = pascal/2;                 //Barometric input is in 2*Pa
+    Write_MPL3115A2(BAR_IN_MSB, sea_level_pressure>>8);     //write MSB to barometric input register
+    __delay_cycles(CYCLES);                                 //delay for write
+    Write_MPL3115A2(BAR_IN_LSB, sea_level_pressure);        //write LSB to barometric input register
+    __delay_cycles(CYCLES);                                 //delay for write
     return;
 }
 

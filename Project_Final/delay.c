@@ -1,14 +1,20 @@
+/*
+ * Engineer(s): Ezzeddeen Gazali and Tyler Starr
+ * Create Date: 04/05/2018
+ */
 #include "delay.h"
 
-/* Function that sets the DCO Clock frequency.
- * Inputs: freq: frequency to set the DCO from pre-defined frequency values*/
+/* Function that sets the DCO Clock frequency. MCLK is also set to the DCO clock frequency
+ * INPUTS       int freq = frequency to set the DCO from pre-defined frequency values
+ * RETURN       NONE
+ */
 void set_DCO(int freq)
 {
     CS ->KEY = CS_KEY_VAL;                          //enable writing to clock systems
     CS ->CTL0 = 0;                                  //clear control register 0
 
     switch(freq)
-    {                                                   //set DCO SEL to desired frequency setting
+    {   //set DCO SEL to desired frequency setting
         case FREQ_1_5_MHz:
             CS ->CTL0 |= CS_CTL0_DCORSEL_0;
             break;
@@ -24,7 +30,9 @@ void set_DCO(int freq)
         case FREQ_24_MHz:
             CS ->CTL0 |= CS_CTL0_DCORSEL_4;
             break;
-        case FREQ_48_MHz:                               //for the 48 MHz setting, PCM modifications are necessary
+
+        //for the 48 MHz setting, PCM modifications are necessary
+        case FREQ_48_MHz:
             /* Transition to VCORE Level 1: AM0_LDO --> AM1_LDO */
             while ((PCM->CTL1 & PCM_CTL1_PMR_BUSY));
             PCM->CTL0 = PCM_CTL0_KEY_VAL | PCM_CTL0_AMR_1;
@@ -48,15 +56,19 @@ void set_DCO(int freq)
 
 
 /* Function that delays program execution for a given number of micro seconds.
- * Inputs: time_us = time in micro seconds
- *         freq = frequency of the program execution clock, MCLK.*/
+ * INPUTS       float time_us = time in micro seconds
+ *              int freq = frequency of the program execution clock, MCLK.
+ * RETURN       NONE
+ */
 void delay_us(float time_us, int freq)
 {
-     float calcCycles;                                  //calculated cycles to run through the delay loop
+     float calcCycles;                      //calculated cycles to run through the delay loop
 
      switch(freq)
-     {                                                  //The case statements correspond to the frequency definitions above (#define's)
-        case FREQ_1_5_MHz:              //The function for each case is "tuned" to produce correct delay times for the various frequencies
+     {
+        //The case statements correspond to the frequency definitions above (#define's)
+        //The function for each case is "tuned" to produce the correct delay times
+        case FREQ_1_5_MHz:
             calcCycles = 0.145*time_us-36;
             break;
         case FREQ_3_MHz:
@@ -77,18 +89,23 @@ void delay_us(float time_us, int freq)
         default:
             break;
      }
-     int cycles;                                        //loop utilizes nop assembly instruction in a loop to create delay
+
+     //loop utilizes nop assembly instruction in a loop to create delay
+     int cycles;
      for(cycles = calcCycles; cycles > 0; --cycles){__asm(" nop");}
      return;
 }
 
 
 /* Function that delays program execution for a given number of milli seconds
- * Inputs: time_us = time in milli seconds
- *         freq = frequency of the program execution clock, MCLK.
+ * INPUTS       float time_us = time in milli seconds
+ *              int freq = frequency of the program execution clock, MCLK.
+ * RETURN       NONE
  */
 void delay_ms(float time_ms, int freq)
 {
-    delay_us(time_ms*950, freq);            //utilzes the microsecond delay to create millisecond delays
-    return;                     //It isn't multiplied by 1000 to account for the time introduced by calling delay_us
+    //Utilizes the microsecond delay to create millisecond delays
+    //It isn't multiplied by 1000 to account for the time introduced by calling delay_us
+    delay_us(time_ms*950, freq);
+    return;
 }
