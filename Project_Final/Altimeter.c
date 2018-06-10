@@ -1,3 +1,8 @@
+/*
+ * Engineer(s): Ezzeddeen Gazali and Tyler Starr
+ * Create Date: 05/30/2018
+ */
+
 #include "Altimeter.h"
 
 //global variable definitions
@@ -12,11 +17,11 @@ uint32_t REG1_CONTROL_WORD = 0;
  */
 void set_sea_pressure(float pascal)
 {
-    uint16_t sea_level_pressure = pascal/2;             //Barometric input is in 2*Pa
-    Write_MPL3115A2(BAR_IN_MSB, sea_level_pressure>>8); //write MSB to barometric input register
-    __delay_cycles(CYCLES);                               //delay for write
-    Write_MPL3115A2(BAR_IN_LSB, sea_level_pressure);    //write LSB to barometric input register
-    __delay_cycles(CYCLES);                               //delay for write
+    uint16_t sea_level_pressure = pascal/2;                 //Barometric input is in 2*Pa
+    Write_MPL3115A2(BAR_IN_MSB, sea_level_pressure>>8);     //write MSB to barometric input register
+    __delay_cycles(CYCLES);                                 //delay for write
+    Write_MPL3115A2(BAR_IN_LSB, sea_level_pressure);        //write LSB to barometric input register
+    __delay_cycles(CYCLES);                                 //delay for write
     return;
 }
 
@@ -116,8 +121,6 @@ void Init_I2C(uint8_t Device_Address)
     P6->SEL1 |= (SDA | SCL);                    // Set I2C pins of eUSCI_B3
 
     NVIC->ISER[0] = 1 << ((EUSCIB3_IRQn) & 31); // Enable eUSCIB3 interrupt in NVIC module
-    NVIC ->IP[23] = 0X00;
-
 
     EUSCI_B3->CTLW0 |= EUSCI_B_CTLW0_SWRST;     // Software reset enabled
     EUSCI_B3->CTLW0 = EUSCI_B_CTLW0_SWRST   |   // Remain eUSCI in reset mode

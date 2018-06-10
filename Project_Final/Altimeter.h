@@ -1,3 +1,13 @@
+/* Engineer(s): Ezzeddeen Gazali and Tyler Starr
+ * Create Date: 05/30/2018
+ * Description: This library file implements useful functions for setting up and using
+ *              the MPL3115A2 altitude and temperature sensor. The functions are documented
+ *              prior to their source code.
+ *
+ * Pin Assignments: P6.6 -> I2C -> SDA
+ *                  P6.7 -> I2C -> SCL
+ */
+
 #include "msp.h"
 
 //Device Identifier values

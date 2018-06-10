@@ -1,84 +1,58 @@
-#include "msp.h"
-#include "keypad.h"
+/* Engineer(s): Ezzeddeen Gazali and Tyler Starr
+ * Create Date: 04/15/2018
+ * Description: A program that implements an electronic lock system. The user
+ *              is prompted for a key. If the key matches the correct
+ *              password, "HELLO WORLD!" is displayed on the LCD. Otherwise,
+ *              the prompt is displayed again. The keypad and FSM used in this
+ *              system are both interrupt based.
+ */
 
-#define LOCKED 0
-#define UNLOCKED 1
-#define CLEAR 2
-uint8_t keyValue;
-const uint8_t correctKey[] = {1,2,3,4};
+#include "keypad_lock.h"
 
-void ENTER_PASSWORD(uint8_t keyValue){
-    static uint8_t i;
-    static uint8_t enteredKey[];
-    for(i = 0; i < 4; i++){
-        enteredKey[i] = keyValue;
-    }
-}
-
-uint8_t CHECK_PASSWORD(uint8_t enteredKey[]){
-    uint8_t i;
-    for(i = 0; i < 4; i++){
-        if(enteredKey[i] != correctKey[i]){
-            return 0;
-        }
-    }
-    return 1;
-}
-
-void LOCK_SYSTEM_FSM()
+void main(void)
 {
-    static uint8_t PS = LOCKED;
-    uint8_t NS;
-    while(1)
-    {
-        switch(PS)
-        {
-            case LOCKED:
-                Clear_LCD();
-                Return_Home();
-                LCD_Write_String("LOCKED STATE");
-                LCD_newLine();
-                LCD_Write_String("ENTER KEY:");
-                break;
-            case UNLOCKED:
-                Clear_LCD();
-                Return_Home();
-                LCD_Write_String("HELLO WORLD!");
-                break;
-            case CLEAR:
-                Clear_LCD();
-                Return_Home();
-                NS = LOCKED;
-                break;
-            default:
-                NS = LOCKED;
-                break;
-        }
+    //Disable watchdog timer
+    WDTCTL = WDTPW | WDTHOLD;
 
-        PS = NS
+    //Set clock frequency and initialize LCD
+    set_DCO(FREQ_3_MHz);
+    LCD_init();
+
+    //Initialize keypad and set digit value to NO_KEY_PRESS
+    INIT_KEYPAD();
+    digit = NO_KEY_PRESS;
+
+    //Enable Interrupts
+    __enable_irq();
+
+    //Prompt user to enter a key
+    LCD_CLR();
+    LCD_HOME();
+    WRITE_STR_LCD("LOCKED");
+    SET_CUR_POS_LCD(0x40);
+    WRITE_STR_LCD("ENTER KEY:");
+
+    //Put the MCU to sleep to save power between interrupts
+    SCB->SCR |= SCB_SCR_SLEEPONEXIT_Msk; // Do not wake up on exit from Int
+    SCB->SCR |= (SCB_SCR_SLEEPDEEP_Msk);
+    //Ensure that SLEEPDEEP occurs immediately
+    __DSB();
+    __sleep();
+
+}
+
+//ISR handler for port 5 (keypad ISR)
+void PORT5_IRQHandler(void)
+{
+    //If an interrupt is detected from the specified ports, get the digit
+    //pressed and call the finite state machine.
+    //digit is defined as a global variable to enable sharing between
+    //multiple files.
+    if(P5 ->IFG & (ROW1 + ROW2 + ROW3 + ROW4))
+    {
+        digit = GET_CHAR_KEYPAD();
+        LOCK_FSM();
+        P5 -> IFG  &= ~(ROW1 + ROW2 + ROW3 + ROW4);
     }
 }
-
-
-
-
-
-
-
-int main(void) {
-    WDTCTL = WDTPW | WDTHOLD;                       // Stop watchdog timer
-    LCD_init();
-    KEYPAD_INIT();
-    __enable_irq();                                 // Enable global interrupt
-    while(1);
-}
-
-// Port5 ISR
-void PORT5_IRQHandler(void){
-        keyValue = KEYPAD_GET_KEY();
-     //   LOCK_SYSTEM_FSM();
-        P5->IFG &= ~(ROW1 + ROW2 + ROW3 + ROW4);
-}
-
-
 

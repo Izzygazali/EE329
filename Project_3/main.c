@@ -1,331 +1,307 @@
+/* Engineer(s): Ezzeddeen Gazali and Tyler Starr
+ * Create Date: 5/10/2018
+ * Description: Program that implements a digital multimeter using the MSP432
+ * ,MCP4921 DAC, and some other supporting hardware. The DMM is capable of 
+ * measuring DC and other periodic waveforms between 0V and 3.3V. A more
+ * detailed explanation of this project is included in the report.
+ */
+
 #include "msp.h"
+#include "dmm_functions.h"
+#include "UART.h"
 
-#define CLEAR_SCREEN            "\x1B[2K"
-#define CURSOR_HOME             "\x1B[H"
-#define CURSOR_POSITION_FREQ    "\x1B[5;15H"
-#define CURSOR_POSITION_VALID   "\x1B[5;70H"
-#define CURSOR_POSITION_VPP     "\x1B[6;14H"
-#define CURSOR_POSITION_MAX     "\x1B[7;14H"
-#define CURSOR_POSITION_MIN     "\x1B[8;14H"
-#define CURSOR_POSITION_RMS     "\x1B[9;14H"
-#define CURSOR_POSITION_DC      "\x1B[10;14H"
-#define CURSOR_POSITION_RMS_BAR "\x1B[9;24H"
-#define CURSOR_POSITION_DC_BAR  "\x1B[10;24H"
-#define COLOR_BACKGROUND_BLACK  "\x1B[40m"
-#define COLOR_BACKGROUND_RED    "\x1B[41m"
-#define COLOR_BACKGROUND_GREEN  "\x1B[42m"
-#define COLOR_FOREGROUND_RED    "\x1B[31m"
-#define COLOR_FOREGROUND_WHITE  "\x1B[37m"
-#define COLOR_FOREGROUND_GREEN  "\x1B[32m"
+//define states for program flow
+enum state_type{
+    reset_state,
+    get_offset_DC,
+    get_wave_freq,
+    sample_wave,
+    perform_calculations,
+    display_results
+};
 
+
+//define events to control program flow
+enum event_type{
+    reset,
+    DC_offset_set,
+    wave_freq_set,
+    wave_sampled,
+    calculations_done,
+    results_displayed
+};
+
+enum event_type event;
 
 /*
- * Function that sends a string to the console
- * INPUTS:      unsigned char inputString[] = string to write to console
- * RETURN:      NONE
+ * Function that determines the current even based on flags
+ * from dmm_functions.
+ * INPUT:   NONE
+ * RETURN:  NONE.
  */
-void UART_write_string(char inputString[]){
-    int i = 0;
-    while(inputString[i] != '\0')
+void DMM_state_decode(void)
+{
+    uint16_t curr_flags = get_dmm_flags() & ~dc_flag_set;
+    switch(curr_flags)
     {
-        while(!(EUSCI_A0->IFG & EUSCI_A_IFG_TXIFG));
-        EUSCI_A0->TXBUF = inputString[i];
-        i++;
+        case dc_offset_flag:
+            event = DC_offset_set;
+            break;
+        case dc_offset_flag | wave_freq_flag:
+            event = wave_freq_set;
+            break;
+        case dc_offset_flag | wave_freq_flag | sampling_done_flag:
+            event = wave_sampled;
+            break;
+        case dc_offset_flag | wave_freq_flag | sampling_done_flag | calc_done_flag:
+            event = calculations_done;
+            break;
+        case dc_offset_flag | wave_freq_flag | sampling_done_flag | calc_done_flag | results_displayed_flag:
+            event = results_displayed;
+            break;
+        default:
+            event = results_displayed;
+            break;
     }
     return;
 }
 
-
-void check_valid(uint16_t FREQ, uint16_t MAX, uint16_t MIN, uint16_t RMS, uint16_t DC)
+/*
+ * Function that implments the logic for the dc offset
+ * setting state.
+ * INPUT:   NONE
+ * RETURN:  NONE.
+ */
+void dc_offset_logic(void)
 {
-    UART_write_string(CURSOR_HOME);
-    UART_write_string(CURSOR_POSITION_VALID);
-
-    if(FREQ > 1000)
-        UART_write_string(COLOR_BACKGROUND_RED);
-    else if(MAX > 3300)
-        UART_write_string(COLOR_BACKGROUND_RED);
-    else if(MIN > 3300)
-        UART_write_string(COLOR_BACKGROUND_RED);
-    else if(RMS > 3300)
-        UART_write_string(COLOR_BACKGROUND_RED);
-    else if(DC > 3300)
-        UART_write_string(COLOR_BACKGROUND_RED);
-    else
-        UART_write_string(COLOR_BACKGROUND_GREEN);
-
-    UART_write_string(" ");
-    UART_write_string(COLOR_BACKGROUND_BLACK);
-
+    //setup ADC in Sequence of Channels Single Conversion for use
+    //to get max and min from peak/valley circuit
+    init_DC_ADC();
+    //get the max and min value, average them, and set the DAC for
+    //use in the "frequency generator"
+    set_DC_offset();
+    //disable the interrupts for "DC ADC"
+    ADC14->IER0 &= ~ADC14_IER0_IE1;
     return;
 }
 
 /*
- * Function that handles UART initialization. UART is initialized to
- * use P1.2 for receiving and P1.3 for transmitting.
- * INPUTS:      NONE
- * RETURN:      NONE
+ * Function that implments the logic for determing
+ * the frequency of the input wave (or if it is DC)
+ * INPUT:   NONE
+ * RETURN:  NONE.
  */
-void UART_init(void){
-    //GPIO settings: P1.2 RX, P1.3 TX
-    P1 -> SEL0 |=  (BIT2 | BIT3);
-    P1 -> SEL1 &= ~(BIT2 | BIT3);
-
-    CS->KEY = CS_KEY_VAL;                   // Unlock CS module for register access
-    CS->CTL0 = 0;                           // Reset tuning parameters
-    CS->CTL0 = CS_CTL0_DCORSEL_4;           // Set DCO to 24MHz (nominal, center of 8-16MHz range)
-    CS->CTL1 = CS_CTL1_SELS_3;              // SMCLK = DCO
-    CS->KEY = 0;                            // Lock CS module from unintended accesses
-
-
-    EUSCI_A0 -> CTLW0 |= EUSCI_A_CTLW0_SWRST;               //hold in reset state
-    EUSCI_A0 -> CTLW0 |= EUSCI_A_CTLW0_SSEL__SMCLK       |  //set SMCLK as source
-                         EUSCI_A_CTLW0_SWRST;               //Remain eUSCI in reset
-
-    EUSCI_A0 -> BRW = 13;                                   //baud rate = 13 => 24MHz/115200/16
-    EUSCI_A0 -> MCTLW = (0    << EUSCI_A_MCTLW_BRF_OFS)   | //First modulation stage select
-                        (0x49 << EUSCI_A_MCTLW_BRS_OFS)   | //Second modulation stage select
-                         EUSCI_A_MCTLW_OS16;                //Oversampling
-    EUSCI_A0 -> CTLW0 &= ~EUSCI_A_CTLW0_SWRST;              //reset released for operation
-
-    EUSCI_A0 -> IE |= EUSCI_A_IE_RXIE;                      //receive interrupt enable
-    EUSCI_A0 -> IFG &= ~EUSCI_A_IFG_RXIFG;                  //clear receive interrupt flag
-    NVIC -> ISER[0] = 1 <<(EUSCIA0_IRQn & 31);              //interrupt vector enable
-    return;
-}
-
-/*
- * Function that initializes the console for the Digital Mulitimeter
- * INPUTS:      NONE
- * RETURN:      NONE
- */
-void initialize_console(void)
+void wave_freq_logic(void)
 {
-    UART_write_string(CLEAR_SCREEN);
-    UART_write_string(CURSOR_HOME);
-    UART_write_string(COLOR_BACKGROUND_BLACK);
-    UART_write_string(COLOR_FOREGROUND_WHITE);
-    UART_write_string("______________________________________________________________________\n\r");
-    UART_write_string("|************************ EE329 Project 3 ****************************|\n\r");
-    UART_write_string("|********************** Digital Mulitmeter ***************************|\n\r");
-    UART_write_string("|_____________________________________________________________________|\n\r");
-    UART_write_string("|Frequency :       Hz                                          Valid  |\n\r");
-    UART_write_string("|Vp-p      :       V                                                  |\n\r");
-    UART_write_string("|Max. Val  :       V                                                  |\n\r");
-    UART_write_string("|Min. Val  :       V                                                  |\n\r");
-    UART_write_string("|RMS       : 3.300 V  |-----------------------------------|           |\n\r");
-    UART_write_string("|DC        : 3.300 V  |-----------------------------------|           |\n\r");
-    UART_write_string("|                     :    :    :    :    :    :    :    :            |\n\r");
-    UART_write_string("|                     0.0  0.5  1.0  1.5  2.0  2.5  3.0  3.5          |\n\r");
-    UART_write_string("|_____________________________________________________________________|\n\r");
-    return;
-}
-
-/*
- * Function that converts a binary number to a BCD number
- * INPUTS:      uint16_t binary_number = binary number to be converted
- * RETURN:      uint16_t bcd_number = BCD representation of the input binary number
- */
-uint16_t binary_to_bcd(uint16_t binary_number)
-{
-    //variable initialization.
-    uint16_t bcd_number = 0;
-    uint8_t digit = 0;
-
-    //algorithm which converts binary to BCD.
-    while (binary_number > 0)
-    {
-        bcd_number |= (binary_number % 10) << (digit++ << 2);
-        binary_number /= 10;
-    }
-    return bcd_number;
-}
-
-/*
- * Function that prints a given voltage onto the console. The voltage is printed in the
- * following format: 3.300
- * INPUTS:      uint16_t voltage = voltage to be printed to console, multiplied by 1000
- * RETURN:      NONE
- */
-void voltage_to_console(uint16_t voltage)
-{
-    //variable initialization
-    char voltage_string[] = {'0','.','0','0','0','\0'};
-    uint16_t bcd_num = 0;
-    uint16_t temp = 0;
-    uint8_t shift = 12;
-    uint8_t i;
-
-    //convert input voltage to a BCD number
-    bcd_num = binary_to_bcd(voltage);
-
-    //algorithm for copying the BCD voltage into a character array with 3 decimal places
-    for(i = 0; i < 5;i++)
-    {
-        if(i != 1)
+    //define variable for frequency timeout 
+    uint32_t timeout_count = 0;
+    //setup the timer for accurate low frequencies intially
+    set_freq_slow();
+    //set the frequency conversion for low frequencies
+    set_freq_conversion(32000);
+    //start capture-mode timer to get frequency
+    init_freq_timer();
+    //wait until flag indicates frequency has been determined
+    while((get_dmm_flags() & wave_freq_flag) == 0){
+        //increment timeout count.
+        timeout_count++;
+        //if timeout count reaches this the wave is assumed to be DC
+        if (timeout_count > 5000000)
         {
-            temp = (bcd_num & (0xF000 >> (12 - shift))) >> shift;
-            voltage_string[i] = temp + 48;
-            shift -= 4;
+            //set the DC flag and the freq found flag to make FSM move on
+            set_dmm_flags(dc_flag_set | wave_freq_flag);
+            //disable interrupts for frequency timer
+            NVIC->ICER[0] = 1 << ((TA0_N_IRQn) & 31);
+            return;
         }
     }
-    //print voltage on console
-    UART_write_string(voltage_string);
+    //disable interrupts for frequency timer
+    NVIC->ICER[0] = 1 << ((TA0_N_IRQn) & 31);
+    //if frequency is "high frequency" then get it again this a faster timer
+    if (get_captured_freq() > 100){
+        //reset wave freq flag
+        reset_dmm_flags(wave_freq_flag);
+        //setup the timer for accurate high frequencies
+        set_freq_fast();
+        //set frequency conversion for high frequencies 
+        set_freq_conversion(756400);
+        //start timer
+        init_freq_timer();
+        //wait for flag to indicate frequency was found
+        while((get_dmm_flags() & wave_freq_flag) == 0);
+        //disable interrupts for frequency timer
+        NVIC->ICER[0] = 1 << ((TA0_N_IRQn) & 31);
+    }
     return;
 }
 
 /*
- * Function that prints a given frequency onto the console.
- * INPUTS:      uint16_t frequency = frequency to be printed to console
- * RETURN:      NONE
+ * Function that implments the logic for sampling the
+ * input waveform for performing calculations.
+ * INPUT:   NONE
+ * RETURN:  NONE.
  */
-void freq_to_console(uint16_t frequency)
+void sample_wave_logic(void)
 {
-    //variable initialization
-    char frequency_string[] = {'0','0','0','0','\0'};
-    uint16_t bcd_num = 0;
-    uint16_t temp = 0;
-    uint8_t shift = 12;
-    uint8_t i;
-
-    //convert input frequency to a BCD number
-    bcd_num = binary_to_bcd(frequency);
-
-    //algorithm for copying the BCD frequency to character array
-    for(i = 0; i < 4;i++)
-    {
-        temp = (bcd_num & (0xF000 >> (12 - shift))) >> shift;
-        frequency_string[i] = temp + 48;
-        shift -= 4;
-    }
-
-    //The following code segment replaces all leading zero's with the space character ' '
-    //For example: 1000 => 1000, 0100 => 100, 0010 => 10, and 0001 => 1
-    if(frequency < 1000 && frequency >= 100)
-    {
-        frequency_string[0] = ' ';
-    }
-    else if(frequency < 100 && frequency >= 10)
-    {
-        frequency_string[0] = ' ';
-        frequency_string[1] = ' ';
-    }
-    else if(frequency < 10)
-    {
-        frequency_string[0] = ' ';
-        frequency_string[1] = ' ';
-        frequency_string[2] = ' ';
-    }
-
-    //print frequency on console
-    UART_write_string(frequency_string);
+    //reset the index for the array holding sample values
+    reset_ADC_index();
+    //setup ADC in Single Channel Single Conversion for use
+    //to sample input wave
+    init_AC_ADC();
+    //start timer with CCR0 count dependent on the frequency of the
+    //input wave to get reasonable number of samples for all frequencies.
+    init_sample_timer(get_captured_freq());
+    //wait for flag to indicate sampling is complete
+    while((get_dmm_flags() & sampling_done_flag) == 0);
+    //disable sample timer and ADC interrupts
+    ADC14->IER0 &= ~ADC14_IER0_IE3;
+    NVIC->ICER[0] = 1 << ((TA0_0_IRQn) & 31);
     return;
 }
 
 /*
- * Function that prints bars, represented by a red ']' character, on the display. The
- * number of bars displayed corresponds to the input voltage, where each bar is equivalent
- * of 0.1 V
- * INPUTS:      uint16_t voltage = voltage level that bars will represent, mulitplied by 1000
- * RETURN:      NONE
+ * Function that implments the logic for performing the
+ * calculations to get RMS, DC, AVERAGE, and MAX/MIN
+ * INPUT:   NONE
+ * RETURN:  NONE.
  */
-void set_voltage_bars(uint16_t voltage)
+void perform_calculations_logic(void)
 {
-    //variable initialization
-    uint8_t num = voltage/100;
-    uint8_t bar = 0;
-    uint8_t dash = 0;
-
-        //character color set to RED
-
-    if(num < 35)
+    //determine rms of input samples
+    calc_sampled_rms();
+    //determine DC average of input samples
+    calc_sampled_DC();
+    //determine maxmim and minimum of input samples
+    calc_max_min();
+    return;
+}
+ 
+/*
+ * Function that implments the logic for displaying
+ * the update data via a UART interface.
+ * INPUT:   NONE
+ * RETURN:  NONE.
+ */
+void display_results_logic(void)
+{
+    //if the DC flag is set the display to "DC" mode
+    if (get_dmm_flags() & dc_flag_set)
     {
-        UART_write_string(COLOR_FOREGROUND_RED);
-        while(bar < num)
-        {
-            UART_write_string("]");                 //print bars
-            bar++;
-            dash++;
-        }
-        UART_write_string(COLOR_FOREGROUND_WHITE);
-        while(dash < 35)
-        {
-            UART_write_string("-");
-            dash++;
-        }
+        //0xFFFF corresponds to "----" in UART meaning the number doesn't apply to DC mode
+        update_display(0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, get_sampled_DC());
+        //set flag indicating results have been displayed
+        set_dmm_flags(results_displayed_flag);
+        //delay ~1 second to slow down update rate
+        __delay_cycles(24000000);
+        return;
     }
-    UART_write_string(COLOR_FOREGROUND_WHITE);      //reset character color to white
+    //update all relevant numbers on the UART display
+    update_display(get_captured_freq(), get_max(), get_min(), get_sampled_rms(), get_sampled_DC());
+    //set flag indicating results have been displayed
+    set_dmm_flags(results_displayed_flag);
+    //delay ~1 second to slow down update rate
+    __delay_cycles(24000000);
     return;
 }
 
 /*
- * Function that updates the measurements displayed on the console.
- * INPUTS:      uint16_t FREQ = new frequency to display
- *              uint16_t MAX  = new MAX value to display, multiplied by 1000
- *              uint16_t MIN  = new MIN value to display, multiplied by 1000
- *              uint16_t RMS  = new RMS value to display, multiplied by 1000
- *              uint16_t DC   = new DC value to display, multiplied by 1000
- * RETURN:      NONE
+ * Function that implments the primary logic loop which
+ * coordinates all functions to produce working digital 
+ * multimeter.
+ * INPUT:   NONE
+ * RETURN:  NONE.
  */
-void update_display(uint16_t FREQ, uint16_t MAX, uint16_t MIN, uint16_t RMS, uint16_t DC)
+void DMM_FSM(void)
 {
-    check_valid( FREQ, MAX, MIN, RMS, DC);
-
-    //In the following code segment, the cursor position is set for each measurement and then
-    //the measurement is updated.
-    UART_write_string(CURSOR_HOME);
-    UART_write_string(CURSOR_POSITION_FREQ);
-    freq_to_console(FREQ);
-
-    UART_write_string(CURSOR_HOME);
-    UART_write_string(CURSOR_POSITION_VPP);
-    voltage_to_console((MAX-MIN));
-
-    UART_write_string(CURSOR_HOME);
-    UART_write_string(CURSOR_POSITION_MAX);
-    voltage_to_console(MAX);
-
-    UART_write_string(CURSOR_HOME);
-    UART_write_string(CURSOR_POSITION_MIN);
-    voltage_to_console(MIN);
-
-    UART_write_string(CURSOR_HOME);
-    UART_write_string(CURSOR_POSITION_RMS);
-    voltage_to_console(RMS);
-    UART_write_string(CURSOR_HOME);
-    UART_write_string(CURSOR_POSITION_RMS_BAR);
-    set_voltage_bars(RMS);
-
-    UART_write_string(CURSOR_HOME);
-    UART_write_string(CURSOR_POSITION_DC);
-    voltage_to_console(DC);
-    UART_write_string(CURSOR_HOME);
-    UART_write_string(CURSOR_POSITION_DC_BAR);
-    set_voltage_bars(DC);
+    //define local varible to contain the current state.
+    static enum state_type state = get_offset_DC;
+    switch(state)
+    {
+        case get_offset_DC:
+            if(event == DC_offset_set){
+                state = get_wave_freq;
+                break;
+            }
+            //DC offset function
+            dc_offset_logic();
+            break;
+        case get_wave_freq:
+            if(event == wave_freq_set){
+                state = sample_wave;
+                break;
+            }
+            wave_freq_logic();
+            break;
+        case sample_wave:
+            if(event == wave_sampled){
+                state = perform_calculations;
+                break;
+            }
+            //sample wave function
+            sample_wave_logic();
+            break;
+        case perform_calculations:
+            if(event == calculations_done){
+                state = display_results;
+                break;
+            }
+            //calculations function
+            perform_calculations_logic();
+            break;
+        case display_results:
+            if(event == results_displayed){
+                state = reset_state;
+                break;
+            }
+            //display results function
+            display_results_logic();
+            break;
+        case reset_state:
+            //reset variables
+            reset_dmm_flags(0xFF);
+            state = get_offset_DC;
+            event = reset;
+            break;
+        default:
+            state = reset_state;
+            break;
+    }
     return;
 }
 
-void main(void){
-    WDTCTL = WDTPW | WDTHOLD;   //disable watchdog timer
+/*
+ * Function that initializes various components
+ * at startup for the digital multimeter.
+ * INPUT:   NONE
+ * RETURN:  NONE.
+ */
+void init_DMM(void)
+{
+    //set up LED as output to indicate when sampling is occuring
+    P1->DIR |= BIT0;
+    //enable interrupts globally
+    __enable_irq();
+    //startup needed clocks for various functions
+    init_clock();
+    //start up SPI interface for DAC
+    SPI_INIT();
+    //start up UART interface for displaying data
     UART_init();
+    //initialize console for displaying data
     initialize_console();
-    update_display(500, 1500, 0, 1500, 3300);
-    update_display(1500, 1500, 100, 500, 1300);
-    update_display(500, 1500, 500, 1500, 3300);
-    update_display(500, 1500, 1000, 1500, 4500);
-
-    while(1);
+    return;
 }
 
-//EUSCI_A0 ISR
-void EUSCIA0_IRQHandler(void)
+void main(void)
 {
-    //uint8_t input;                                          //key pressed by user
-
-    //only enter if interrupt flag is set
-    if (EUSCI_A0->IFG & EUSCI_A_IFG_RXIFG)
+    //disable watchdog timer
+    WDTCTL = WDTPW | WDTHOLD;   
+    //intialize components for DMM
+    init_DMM();
+    //repeat the state decoder and FSM to perform function of DMM
+    while(1)
     {
-        while(!(EUSCI_A0->IFG & EUSCI_A_IFG_TXIFG));    //echo entered number
-        EUSCI_A0->TXBUF = EUSCI_A0->RXBUF;
+        DMM_state_decode();
+        DMM_FSM();
     }
 }

@@ -1,3 +1,14 @@
+/* Engineer(s): Ezzeddeen Gazali and Tyler Starr
+ * Create Date: 06/02/2018
+ * Description: The source code found in this file was obtained from:
+ *                       http://elm-chan.org/fsw/ff/00index_e.html
+ *              The code is slightly modified to work with our hardware
+ *
+ * Modifications: lines 51-65, 67-76, and 395-399
+ *
+ */
+
+
 /*------------------------------------------------------------------------/
 /  Foolproof MMCv3/SDv1/SDv2 (in SPI mode) control module
 /-------------------------------------------------------------------------/
@@ -37,17 +48,25 @@
 
 #include <stdio.h>			/* Include device specific declareation file here */
 
+/*
+ * These definitions were modified for the specific GPIO ports that are used with
+ * the SD card.
+ */
 
-#define DO			(P1->IN & BIT7)	/* Test for MMC DO ('H':true, 'L':false) */
-#define DI_H()		P1->OUT |= BIT6	/* Set MMC DI "high" */
+#define DO			(P1->IN & BIT7)	    /* Test for MMC DO ('H':true, 'L':false) */
+#define DI_H()		P1->OUT |= BIT6	    /* Set MMC DI "high" */
 #define DI_L()		P1->OUT &= ~BIT6	/* Set MMC DI "low" */
 
-#define CK_H()		P1->OUT |= BIT5	/* Set MMC SCLK "high" */
+#define CK_H()		P1->OUT |= BIT5 	/* Set MMC SCLK "high" */
 #define	CK_L()		P1->OUT &= ~BIT5	/* Set MMC SCLK "low" */
 
-#define	CS_H()		P4->OUT |= BIT0	/* Set MMC CS "high" */
+#define	CS_H()		P4->OUT |= BIT0	    /* Set MMC CS "high" */
 #define CS_L()		P4->OUT &= ~BIT0	/* Set MMC CS "low" */
 
+
+/*
+ * added delay micro-second function here
+ */
 
 static
 void dly_us (UINT n)	/* Delay n microseconds (avr-gcc -Os) */
@@ -372,14 +391,16 @@ DSTATUS disk_initialize (
 	if (drv) return RES_NOTRDY;
 
 	dly_us(10000);			/* 10ms */
+
+	/*initialized GPIO ports here*/
 	P1->DIR |= BIT5 | BIT6;
 	P4->DIR |= BIT0;
 	P1->DIR &= ~BIT7;
 
 	 CS_H();		/* Initialize port pin tied to CS */
 	 CK_L();		/* Initialize port pin tied to SCLK */
-				/* Initialize port pin tied to DI */
-			/* Initialize port pin tied to DO */
+				    /* Initialize port pin tied to DI */
+			        /* Initialize port pin tied to DO */
 
 	for (n = 10; n; n--) rcvr_mmc(buf, 1);	/* Apply 80 dummy clocks and the card gets ready to receive command */
 

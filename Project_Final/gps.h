@@ -1,14 +1,31 @@
+/* Engineer(s): Ezzeddeen Gazali and Tyler Starr
+ * Create Date: 05/22/2018
+ * Description: This library file implements a FSM
+ * for parsing gps data over UART using the "UBX"
+ * data format. Additionally, the file implements
+ * other functions used to change operating parameters
+ * on the gps.
+ *
+ * Pin Assignments: P3.2 -> GPS TX/MCU RX
+ *                  P3.3 -> GPS RX/MCU TX
+ */
+
 #include "msp.h"
 
-/*Define integer associated with the various availble DCO frequencies.*/
-/*This function will also set MCLK to the DCO.*/
+//define pin numbers used for UART RX and TX
 #define RX BIT2
 #define TX BIT3
+
+//define bits used as flags in GPS parser
+//BIT 0 - flag is set when gps data is determined to be valid
+//BIT 1 - flag is set when new gps data is processed
+//BIT 2 - set when the gps acknoledges a transmission from
+//        sent from the MCU
 #define data_valid_flag BIT0
 #define new_data_flag BIT1
 #define gps_ack_flag BIT2
 
-/*Define functions implemented in DAC.c*/
+//Define functions implemented in gps.c
 uint16_t get_gps_flags(void);
 void reset_gps_flags(uint16_t flags);
 void gps_state_decode(void);

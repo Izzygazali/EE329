@@ -1,10 +1,9 @@
 #include "msp.h"
 
-#define CONVERSION_FACTOR 0.201416015625
+#define ANALOG_IN BIT4
+#define adc_flag 0x8000
+#define adc_conv_factor 0.201416
 
-void ADC_init(void);
-uint16_t get_sample(void);
-uint8_t get_sample_flag(void);
-void set_sample_flag(uint8_t input_val);
-uint8_t sample_to_voltage(void);
-void ADC14_IRQHandler(void);
+void init_ADC(void);
+void reset_adc_flag(void);
+uint16_t get_adc_val_and_flag(void);

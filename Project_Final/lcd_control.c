@@ -1,7 +1,9 @@
-#include "LCD.h"
+/*
+ * Engineer(s): Ezzeddeen Gazali and Tyler Starr
+ * Create Date: 05/30/2018
+ */
+
 #include "lcd_control.h"
-#include "gps.h"
-#include "string_conv.h"
 
 //BIT0 - "redraw" screen flag
 //BIT1 - enter key flag
@@ -51,6 +53,11 @@ void set_lcd_flags(uint16_t flags)
     return;
 }
 
+/*
+ * Function that resets the LCD flags
+ * INPUTS       uint16_t flags = 2-byte word containing the flag to reset
+ * RETURN       NONE
+ */
 void reset_lcd_flags(uint16_t flags)
 {
     lcd_flags &= ~flags;
@@ -65,6 +72,8 @@ void lcd_state_decode(void)
 {
     switch(event)
     {
+        //if the up button is pressed and the prior key pressed is not enter,
+        //switch between screen displays. Otherwise trigger LCD state flag.
         case up_pressed:
             if ((lcd_flags & lcd_enter_flag) == 0)
             {
@@ -76,6 +85,9 @@ void lcd_state_decode(void)
             else
                 lcd_flags |= lcd_state_flag;
             break;
+
+        //if the down button is pressed and the prior key pressed is not enter,
+        //switch between screen displays. Otherwise trigger LCD state flag.
         case down_pressed:
             if ((lcd_flags & lcd_enter_flag) == 0)
             {
@@ -87,16 +99,20 @@ void lcd_state_decode(void)
             else
                 lcd_flags &= ~lcd_state_flag;
             break;
+
+        //if the enter button is pressed and turn cursor on otherwise
+        //turn cursor off
         case enter_pressed:
             lcd_flags ^= lcd_enter_flag;
             if ((lcd_flags & lcd_enter_flag) == 0)
             {
                 lcd_flags |= lcd_screen_flag;
-                LCD_COMMAND(0x0C);
+                LCD_COMMAND(TURN_CURSOR_ON);
             }
             else
-                LCD_COMMAND(0x0F);
+                LCD_COMMAND(TURN_CURSOR_OFF);
             break;
+
         case nothing_pressed:
             break;
     }
@@ -106,15 +122,16 @@ void lcd_state_decode(void)
 
 
 /*
- * Function that implements the LCD finite state machine. The FSM
+ * Function that implements the LCD finite state machine.
  * INPUTS       NONE
  * RETURN       NONE
  */
 void lcd_FSM(void)
 {
-    NVIC->ICER[0] = 1 << ((EUSCIA2_IRQn) & 31);
     switch(state)
     {
+        //initial display: contains timer, distance traveled, pace, and
+        //start/stop logging selection
         case hiking_display:
             if (lcd_flags & lcd_screen_flag)
             {
@@ -130,6 +147,9 @@ void lcd_FSM(void)
                 SET_CUR_POS_LCD(0x4D);
                 WRITE_STR_LCD("S E");
 
+                //if lcd_state_flag is set, a '*' is written next to the 'S' on
+                //the display to indicated logging is on. Otherwise, a '*' is
+                //written next to the 'E' to indicate end of logging
                 if (lcd_flags & lcd_state_flag)
                     SET_CUR_POS_LCD(0x4C);
                 else
@@ -139,6 +159,7 @@ void lcd_FSM(void)
                 lcd_flags &= ~lcd_screen_flag;
             }
 
+            //set cursor position after write
             if (lcd_flags & lcd_enter_flag)
             {
                 if (lcd_flags & lcd_state_flag)
@@ -147,6 +168,8 @@ void lcd_FSM(void)
                      SET_CUR_POS_LCD(0x4E);
             }
             break;
+
+        //data_1 screen: contains Date and time
         case data_1:
             if (lcd_flags & lcd_screen_flag)
             {
@@ -160,6 +183,8 @@ void lcd_FSM(void)
                 lcd_flags &= ~lcd_screen_flag;
             }
             break;
+
+        //data_2 screen: contains Latitude and Longitude
         case data_2:
             if (lcd_flags & lcd_screen_flag)
             {
@@ -173,6 +198,8 @@ void lcd_FSM(void)
                 lcd_flags &= ~lcd_screen_flag;
             }
             break;
+
+        //data_3 screen: contains speed in Km/hr and altitude in meters.
         case data_3:
             if (lcd_flags & lcd_screen_flag)
             {
@@ -187,6 +214,9 @@ void lcd_FSM(void)
                 WRITE_STR_LCD("m");
                 lcd_flags &= ~lcd_screen_flag;
             }
+            break;
+
+        //data_4 screen: contains temperature in degrees celsius.
         case data_4:
             if (lcd_flags & lcd_screen_flag)
             {
@@ -202,7 +232,6 @@ void lcd_FSM(void)
             state = hiking_display;
             break;
     }
-    NVIC->ISER[0] = 1 << ((EUSCIA2_IRQn) & 31);
     return;
 }
 
@@ -229,8 +258,6 @@ void init_buttons(void)
 
     //enable Port 5 interrupts
     NVIC->ISER[1] = 1 << ((PORT5_IRQn) & 31);
-    NVIC ->IP[39] = 0X40;
-
     return;
 }
 
@@ -254,8 +281,6 @@ void LCD_update_timer(void)
 
     // Enable interrupts
     NVIC->ISER[0] = 1 << ((TA0_0_IRQn) & 31);
-    NVIC ->IP[8] = 0X40;
-
     return;
 }
 

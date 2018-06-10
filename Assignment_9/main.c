@@ -1,68 +1,84 @@
-#include "msp.h"
+/* Engineers:   Ezzeddeen Gazali and Tyler Starr
+ * Created:     5/9/2018
+ * Description: main file implementing the DC voltage measurement
+ *              and UART output of the voltage.
+ */
 #include "UART.h"
 #include "ADC.h"
 
-
-uint32_t binary_to_BCD(int16_t input_num){
-    uint32_t BCD_num = 0;
-    uint8_t shift = 0;
-
-    while(input_num > 0){
-        BCD_num |= (input_num % 10) << (shift++ << 2);
-        input_num /= 10;
-    }
-    return BCD_num;
+/*
+ * Function that converts a binary number into its BCD form.
+ * The number must fit in 4 base ten digits.
+ * INPUTS:      uint16_t binary_number = binary number to convert
+ * RETURN:      bcd_number = BDC representation of the input.
+ */
+uint16_t binary_to_bcd(uint16_t binary_number)
+{
+   //initialize variables for use in conversion.
+   uint16_t bcd_number = 0;
+   uint8_t  digit = 0;
+   //algorithm which converts binary to bcd.
+   while (binary_number > 0) {
+       bcd_number |= (binary_number % 10) << (digit++ << 2);
+       binary_number /= 10;
+   }
+   //return bcd number
+   return bcd_number;
 }
 
-void main(void)
-{
-	WDT_A->CTL = WDT_A_CTL_PW | WDT_A_CTL_HOLD;		// stop watchdog timer
-	UART_init();
-	/*
-	ADC_init();
-	int32_t level;
-	int i,j;
-	uint8_t shift = 0;
-	uint32_t temp;
-	*/
-	char outputString[] = {'H','E','L','L','O'} ;
 
-	while(1){
+
+void send_voltage_UART(uint16_t voltage_number)
+{
+    //Clear and set the cursor position in the UART terminal
     UART_write_string(CLEAR_LINE);
     UART_write_string(CURSOR_HOME);
-	UART_write_string(outputString);
-	UART_write_string(CLEAR_LINE);
-	UART_write_string(CURSOR_HOME);
-	}
 
-/*
-	while(1){
-	    ADC14 -> CTL0 |= ADC14_CTL0_SC;
-	    //__delay_cycles(10000);
-	    if(get_sample_flag())
-	    {
-	        //NVIC -> ICER[0] = (1 << ADC14_IRQn);
-	        level = get_sample();
+    //initialize character array to store the output string in
+    char voltage_string[] = {'0','.','0','0','0','V','\0'};
+    //fill in the "digits" of the string from the BCD number determined.
+    voltage_string[0] = ((voltage_number & 0xF000) >> 12) + 48;
+    voltage_string[2] = ((voltage_number & 0x0F00) >> 8) + 48;
+    voltage_string[3] = ((voltage_number & 0x00F0) >> 4) + 48;
+    voltage_string[4] = (voltage_number & 0x000F) + 48;
+    //write the character array to UART
+    UART_write_string(voltage_string);
+    return;
+}
 
+void main(void){
+    //stop watchdog timer
+    WDTCTL = WDTPW | WDTHOLD;
+    //Initialize the UART communication and the ADC.
+    UART_init();
+    init_ADC();
+    //declare and initialize useful variables for converting
+    //ADC values to display via UART.
+    uint16_t converted_voltage = 0;
+    uint16_t converted_bcd_voltage = 0;
 
-	        level = binary_to_BCD(sample_to_voltage());
-
-	        for(i = 0; i < 5; i++)
-	        {
-                temp = (level & (0xF0000>>shift))>>(12 - shift);
-                shift += 4;
-
-	            for(j = 0; j < 10; j++)
-	            {
-	                if(temp == j)
-	                {
-	                    outputString[i] = j + 48;
-	                }
-	            }
-	        }
-
-
-	    }
-	}
-*/
+    //infinite loop to continue checking voltage.
+    while(1)
+    {
+        //start conversion to get ADC value
+        ADC14->CTL0 |= ADC14_CTL0_ENC | ADC14_CTL0_SC;
+        //delay a bit to allow ADC value to be determined
+       __delay_cycles(20000);
+       //if a the adc_flag is set (Bit 15 of adc_val_and_flag from ADC.c)
+       if (get_adc_val_and_flag() & adc_flag)
+       {
+           //multiply the adc value by a conversion factor to get voltage
+           converted_voltage = (get_adc_val_and_flag() & ~adc_flag)*adc_conv_factor;
+           //if the converted voltage is in a valid range display it
+           if (converted_voltage <= 3300)
+           {
+               //convert adc value in to a BCD representation
+               converted_bcd_voltage = binary_to_bcd(converted_voltage);
+               //convert and send the BCD representation over UART
+               send_voltage_UART(converted_bcd_voltage);
+           }
+           //reset the ADC flag
+           reset_adc_flag();
+       }
+    }
 }
